@@ -55,6 +55,7 @@ npm run build        # 输出到 web/dist/
 | 登录 | Supabase Auth（用户名映射为 `username@dict.local`） |
 | 词库读取 | 登录后分页读取 `public.terms`（RLS 只允许 authenticated） |
 | 增删改 | 直接写 `public.terms`；删除为软删除 `deleted=true` |
+| 删除词条 | 仅管理员；普通用户详情页不显示删除按钮，数据库触发器也会拒绝 |
 | 用户管理 | 调 Edge Function `admin-users`（仅 admin） |
 | 修改密码 | 已登录用户通过 Supabase Auth 直接设置新密码（无需旧密码，至少 6 位） |
 | 导出 | 从内存生成 CSV/JSON（与旧版格式兼容） |
@@ -73,6 +74,7 @@ npm run build        # 输出到 web/dist/
   ```
   然后在 `supabase/config.toml` 的 functions 配置中仍保持 `verify_jwt = false`（函数内部自己校验 JWT）。
 - 如需把用户名登录改成邮箱登录，只需调整 `web/src/main.js` 里的 email 映射和 UI 文案。
+
 
 
 

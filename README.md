@@ -13,7 +13,8 @@
 - 登录门禁（Supabase Auth，用户名登录）
 - 9,058 条日文词条 + 32 条商务句型
 - 日语/假名/中文/英文检索、五十音索引、领域筛选
-- 词条新增 / 编辑 / 删除（写入 Supabase；已移除「参考图编号」字段）
+- 词条新增 / 编辑（写入 Supabase；已移除「参考图编号」字段）；普通用户不能在详情页删除词条，仅管理员可删除
+- 删除词条在数据库层也有触发器保护（仅管理员 / service_role）
 - 词库 CSV / JSON 导入导出
 - 收藏保存到数据库 `favorites`（按用户，可跨设备；旧 localStorage 收藏自动迁移）
 - 再次点击同一词条可收起详情，恢复「查一个词」页面
@@ -70,6 +71,7 @@ npm run dev        # http://localhost:5173
 - 前端代码公开；**词条数据只在登录后由 Supabase 返回**，匿名 API 返回 401。
 - service_role / 数据库密码 / Personal Access Token 只保存在本机 `.env.local` 或 Supabase 后台，绝不进前端或仓库。
 - 管理员操作（增删用户）只通过 Edge Function 的服务端密钥执行。
+
 
 
 

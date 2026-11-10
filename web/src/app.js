@@ -1,4 +1,4 @@
-﻿/* ============================================================
+/* ============================================================
    术语词典 · Beta — application
    Vanilla JS, no dependencies. Data is embedded by tools/build.py.
    ============================================================ */
@@ -728,6 +728,7 @@
     }).join("") : '<span class="muted" style="font-size:12.5px">暂无同领域词条</span>';
 
     var starred = state.favs.has(e.id);
+    var canDelete = AUTH.isAdmin();
     var html =
       '<div class="detail-eyebrow">' + catsHtml + "</div>" +
       '<h2 class="detail-ja">' + highlight(e.ja, tokens) + "</h2>" +
@@ -739,7 +740,7 @@
         '<button class="btn' + (starred ? " is-on" : "") + '" type="button" data-fav="' + e.id + '">' +
           (starred ? "★ 已收藏" : "☆ 收藏") + "</button>" +
         '<button class="btn" type="button" data-edit="' + e.id + '">编辑</button>' +
-        '<button class="btn danger" type="button" data-delete="' + e.id + '">删除</button>' +
+        (canDelete ? '<button class="btn danger" type="button" data-delete="' + e.id + '">删除</button>' : '') +
       "</div>" +
       (grid ? '<dl class="detail-grid">' + grid + "</dl>" : "") +
       '<section class="detail-note"><h3 class="section-label">注释</h3>' +
@@ -1108,7 +1109,7 @@
       return '<tr><td>' + e.id + '</td><td class="ja">' + esc(e.ja) + '</td><td>' + esc(e.reading) +
         '</td><td>' + esc(e.zh) + '</td><td><div class="table-actions">' +
         '<button class="btn ghost small" type="button" data-manage-edit="' + e.id + '">编辑</button>' +
-        '<button class="btn ghost small" type="button" data-manage-delete="' + e.id + '">删除</button>' +
+        (AUTH.isAdmin() ? '<button class="btn ghost small" type="button" data-manage-delete="' + e.id + '">删除</button>' : '') +
         '</div></td></tr>';
     }).join("");
     el.customList.innerHTML =
@@ -1651,6 +1652,10 @@
   async function deleteEntry(id) {
     var e = byId.get(Number(id));
     if (!e) return;
+    if (!AUTH.isAdmin()) {
+      toast("仅管理员可删除词条");
+      return;
+    }
     if (!window.confirm("确定删除词条「" + e.ja + "」吗？\n删除后管理员可通过备份恢复。")) return;
     try {
       await DATA.remove(e.id);
