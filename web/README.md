@@ -1,4 +1,6 @@
-﻿# 日汉术语词典 · Web 版（Vite + Supabase）
+# 日汉术语词典 · Beta（Vite + Supabase）
+
+线上地址：<https://taize-yang.github.io/Taize-dictionary/>
 
 这是路线 B 的前端：页面本身是纯静态文件，登录后从 Supabase 拉取词库；未登录拿不到任何词条。
 
@@ -22,6 +24,8 @@ VITE_USER_EMAIL_DOMAIN=dict.local
 > `.env.local` 与 `web/.env.local` 都已被 `.gitignore` 忽略。
 
 账号（Supabase Auth）：用户名 `taize`（一般用户）、`admin`（管理员）。初始密码见本地 `accounts.local.txt` / 项目沟通记录；Supabase 要求密码至少 6 位。
+
+登录后点右上角钥匙图标可修改自己的密码（无需输入旧密码）。浅色/深色主题分别使用 `web/public/logo-light.png` 与 `logo-dark.png`。
 
 ## 构建
 
@@ -52,6 +56,7 @@ npm run build        # 输出到 web/dist/
 | 词库读取 | 登录后分页读取 `public.terms`（RLS 只允许 authenticated） |
 | 增删改 | 直接写 `public.terms`；删除为软删除 `deleted=true` |
 | 用户管理 | 调 Edge Function `admin-users`（仅 admin） |
+| 修改密码 | 已登录用户通过 Supabase Auth 直接设置新密码（无需旧密码，至少 6 位） |
 | 导出 | 从内存生成 CSV/JSON（与旧版格式兼容） |
 | 导入 | CSV 追加 / JSON 按 id 或 base_id 合并写入 Supabase |
 | 收藏 | 目前仍存 localStorage（后续可迁 `favorites` 表） |
@@ -65,4 +70,5 @@ npm run build        # 输出到 web/dist/
   ```
   然后在 `supabase/config.toml` 的 functions 配置中仍保持 `verify_jwt = false`（函数内部自己校验 JWT）。
 - 如需把用户名登录改成邮箱登录，只需调整 `web/src/main.js` 里的 email 映射和 UI 文案。
+
 

@@ -4,9 +4,10 @@ import { authAdapter, setSessionUser } from "./auth-adapter.js";
 import { StoreAdapter, fetchAllTerms, fetchPatterns } from "./store-adapter.js";
 
 const FIELDS = ["en", "ja", "reading", "zh", "cats", "freq", "note", "etym", "variant", "abbr", "syn", "img", "owner"];
+const BUILD_DATE = typeof __BUILD_DATE__ !== "undefined" ? __BUILD_DATE__ : new Date().toISOString();
 const BUILD_INFO = {
-  version: "0.4.0-supabase",
-  ts: new Date().toLocaleString("zh-CN"),
+  version: "0.4.0-beta",
+  ts: new Date(BUILD_DATE).toLocaleDateString("zh-CN"),
   source: "Supabase / terms + patterns",
 };
 
@@ -38,7 +39,7 @@ async function loadPayload() {
     meta: {
       total: rows.length,
       patterns: patterns.map((p) => ({ id: p.id, ja: p.ja, zh: p.zh })),
-      source: "词汇表-已补充.xlsx（Supabase）",
+      source: "Supabase",
     },
     fields: FIELDS,
     rows,
@@ -121,4 +122,5 @@ boot().catch((error) => {
   console.error(error);
   setError("初始化失败：" + (error && error.message ? error.message : "未知错误"));
 });
+
 

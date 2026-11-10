@@ -1,12 +1,12 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN" data-theme="light">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="description" content="日汉术语词典 Alpha — 汽车 / 工业 / 日语专业词汇在线查询，共 9,058 词条（日语为主、中文释义、英文对照）。">
+<meta name="description" content="日汉术语词典 Beta — 汽车 / 工业 / 日语专业词汇在线查询，共 9,058 词条（日语为主、中文释义、英文对照）。">
 <meta name="color-scheme" content="light dark">
-<title>日汉术语词典 · Alpha</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23b13a22'/%3E%3Ctext x='32' y='45' font-size='40' text-anchor='middle' fill='%23fff9f2' font-family='serif'%3E%E8%BE%9E%3C/text%3E%3C/svg%3E">
+<title>日汉术语词典 · Beta</title>
+<link rel="icon" type="image/png" href="./logo-light.png">
 <script>
 /* Apply the saved / requested theme before first paint to avoid a light flash. */
 (function () {
@@ -28,10 +28,10 @@
 <div class="auth-gate" id="authGate">
   <div class="auth-card">
     <div class="auth-brand">
-      <div class="mark" aria-hidden="true">辞</div>
+      <div class="mark" aria-hidden="true"><img class="logo-light" src="./logo-light.png" alt=""><img class="logo-dark" src="./logo-dark.png" alt=""></div>
       <div>
         <h1>日汉术语词典</h1>
-        <p>日本語 · 中文 · 术语 <span class="alpha">ALPHA</span></p>
+        <p>日本語 · 中文 · 术语 <span class="alpha">BETA</span></p>
       </div>
     </div>
     <p class="auth-lead">词库需要登录后才能访问。</p>
@@ -53,10 +53,10 @@
 
 <header class="app-header" id="appHeader" hidden>
   <div class="brand">
-    <div class="mark" aria-hidden="true">辞</div>
+    <div class="mark" aria-hidden="true"><img class="logo-light" src="./logo-light.png" alt=""><img class="logo-dark" src="./logo-dark.png" alt=""></div>
     <div class="brand-text">
       <h1>日汉术语词典</h1>
-      <p>日本語 · 中文 · 术语 <span class="alpha">ALPHA</span></p>
+      <p>日本語 · 中文 · 术语 <span class="alpha">BETA</span></p>
     </div>
   </div>
 
@@ -77,6 +77,11 @@
       <span class="user-name" id="userName">—</span>
       <span class="role-badge" id="userRole">一般</span>
     </div>
+    <button class="icon-btn" id="changePassBtn" type="button" aria-label="修改密码" title="修改密码">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="8" cy="15" r="4"></circle><path d="M11 12l8-8M16 4h4v4"></path>
+      </svg>
+    </button>
     <button class="icon-btn" id="logoutBtn" type="button" aria-label="退出登录" title="退出登录">⏏</button>
     <button class="icon-btn" id="themeToggle" type="button" aria-label="切换深浅色主题" title="切换深浅色主题">◐</button>
   </div>
@@ -110,8 +115,7 @@
 
     <div class="rail-foot">
       <p>共 <span id="footTotal">9,058</span> 词条 · <span id="footCats">95</span> 个领域</p>
-      <p>数据源：词汇表-已补充.xlsx</p>
-      <p>构建 <span id="footBuild">—</span></p>
+      <p>更新 <span id="footBuild">—</span></p>
     </div>
   </aside>
 
@@ -288,12 +292,39 @@
   </form>
 </div>
 
+<!-- ============ change password modal ============ -->
+<div class="modal" id="passwordModal" hidden>
+  <div class="modal-backdrop" data-close-password="1"></div>
+  <form class="modal-card" id="passwordForm" role="dialog" aria-modal="true" aria-labelledby="passwordModalTitle">
+    <header class="modal-head">
+      <h2 id="passwordModalTitle">修改密码</h2>
+      <button class="icon-btn" type="button" data-close-password aria-label="关闭">✕</button>
+    </header>
+    <div class="form-grid">
+      <label class="full">新密码
+        <input name="password" type="password" autocomplete="new-password" minlength="6" placeholder="至少 6 位" required>
+      </label>
+      <label class="full">确认新密码
+        <input name="confirm" type="password" autocomplete="new-password" minlength="6" placeholder="再次输入新密码" required>
+      </label>
+      <p class="form-hint full" id="passwordHint">无需输入旧密码，直接设置新密码（至少 6 位）。</p>
+    </div>
+    <footer class="modal-foot">
+      <span class="form-msg" id="passwordMsg" role="status"></span>
+      <span class="modal-spacer"></span>
+      <button class="btn" type="button" data-close-password>取消</button>
+      <button class="btn primary" type="submit">保存新密码</button>
+    </footer>
+  </form>
+</div>
+
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <pre id="selftest-output" hidden></pre>
 
 <script type="module" src="/src/main.js"></script>
 </body>
 </html>
+
 
 
 

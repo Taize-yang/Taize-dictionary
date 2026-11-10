@@ -1,5 +1,5 @@
-/* ============================================================
-   术语词典 · Alpha — application
+﻿/* ============================================================
+   术语词典 · Beta — application
    Vanilla JS, no dependencies. Data is embedded by tools/build.py.
    ============================================================ */
 (function () {
@@ -11,7 +11,7 @@
     favs: "dict.favs",
     recent: "dict.recent"
   };
-  var BUILD = window.__BUILD__ || { version: "0.3.0-alpha", ts: "", source: "" };
+  var BUILD = window.__BUILD__ || { version: "0.4.0-beta", ts: "", source: "" };
   var PAYLOAD = window.__DICT_PAYLOAD__;
   if (!PAYLOAD || !PAYLOAD.rows || !PAYLOAD.rows.length) {
     document.body.innerHTML = '<div style="padding:40px;font-family:sans-serif">数据加载失败：未找到内嵌词库。</div>';
@@ -265,6 +265,10 @@
     userName: $("#userName"),
     userRole: $("#userRole"),
     logoutBtn: $("#logoutBtn"),
+    changePassBtn: $("#changePassBtn"),
+    passwordModal: $("#passwordModal"),
+    passwordForm: $("#passwordForm"),
+    passwordMsg: $("#passwordMsg"),
     authGate: $("#authGate"),
     loginForm: $("#loginForm"),
     loginUser: $("#loginUser"),
@@ -657,7 +661,6 @@
       '<section class="detail-related"><h3 class="section-label">同领域</h3><div class="related-list">' +
         relatedHtml + "</div></section>" +
       '<div class="detail-footnote">' + (e.custom ? "自定义词条" : "词条") + " #" + e.id +
-        (e.custom ? "" : " · 来源《" + esc(META.source || "词汇表-已补充") + "》") +
         " · 共 " + e.cats.length + " 个领域标签</div>";
 
     el.detailBody.innerHTML = html;
@@ -889,22 +892,22 @@
         '<div class="bars">' + catHtml + "</div></section>" +
       '<section class="stats-section"><h2>五十音行分布 <span class="muted" style="font-size:12px;letter-spacing:.06em">読みの頭文字</span></h2><div class="letter-hist">' + kanaHtml + "</div></section>" +
       '<section class="stats-section"><h2>字段完整率</h2><div class="field-list">' + fieldHtml + "</div></section>" +
-      '<section class="stats-section"><h2>关于这个 Alpha</h2><div class="about">' +
-        "<h3>日汉术语词典 · Alpha " + esc(BUILD.version || "") + "</h3>" +
-        "<p>数据来自《" + esc(META.source || "词汇表-已补充.xlsx") + "》的『LX-专业词库』与『ビジネス文型』工作表，共 " +
+      '<section class="stats-section"><h2>关于这个 Beta</h2><div class="about">' +
+        "<h3>日汉术语词典 · Beta " + esc(BUILD.version || "") + "</h3>" +
+        "<p>共 " +
         fmt((META.total || 0)) + " 条基础日文词条（附中文释义与英文对照）、" + fmt((META.patterns || []).length) + " 条商务句型；当前显示 " +
         fmt(total) + " 条（含自定义与修改）。</p>" +
-        "<p>当前版本为 Alpha，以日语为主、中文释义，英文作为对照与词源参考：</p>" +
+        "<p>当前版本为 Beta，以日语为主、中文释义，英文作为对照与词源参考：</p>" +
         "<ul>" +
           "<li>默认按日语读音（五十音）排序并检索；支持日本語、かな（假名）与中文检索，也可用英文检索作为补充。</li>" +
           "<li>多关键词用空格分隔（AND 关系）；片假名与平假名互通。</li>" +
-          "<li>词条可新增、修改、删除，并可导入 / 导出词库；改动保存在本机浏览器，可在「词库管理」中导出备份。</li>" +
-          "<li>账户需登录后使用：一般用户可使用全部词库功能；管理员额外可新增 / 删除一般用户。</li>" +
-          "<li>收藏与最近查看保存在本机浏览器（localStorage），不随文件分发。</li>" +
-          "<li>原表「参考图」列为插图编号（如 A037 / P099），Alpha 暂未附带图片文件。</li>" +
+          "<li>词条可新增、修改、删除，并可导入 / 导出词库；改动会写入云端词库，所有登录用户共享。</li>" +
+          "<li>账户需登录后使用：一般用户可使用全部词库功能，并可修改自己的密码；管理员额外可新增 / 删除一般用户。</li>" +
+          "<li>收藏与最近查看保存在本机浏览器（localStorage），不随账号同步。</li>" +
+          "<li>原表「参考图」列为插图编号（如 A037 / P099），Beta 暂未附带图片文件。</li>" +
           "<li>已知限制：无音频发音、无例句、无日文罗马字输入；分类标签为原表人工标注，个别词条存在多义。</li>" +
         "</ul>" +
-        "<p class=\"muted\" style=\"font-size:12px\">构建时间：" + esc(BUILD.ts || "—") + " · 单文件产物，可离线使用。</p>" +
+        "<p class=\"muted\" style=\"font-size:12px\">更新日期：" + esc(BUILD.ts || "—") + " · 在线版（GitHub Pages + Supabase）。</p>" +
       "</div></section>";
   }
 
@@ -1160,6 +1163,14 @@
      In Supabase mode the login form is owned by src/main.js (it must fetch the
      dictionary before importing this UI module), so we only wire the logout. */
   el.logoutBtn.addEventListener("click", doLogout);
+  el.changePassBtn.addEventListener("click", openPasswordModal);
+  $$("[data-close-password]").forEach(function (b) {
+    b.addEventListener("click", function (ev) {
+      ev.preventDefault();
+      closePasswordModal();
+    });
+  });
+  el.passwordForm.addEventListener("submit", savePasswordForm);
 
   /* ---- entry editor ---- */
   el.addEntryBtn.addEventListener("click", function () { openEntryForm(null); });
@@ -1228,6 +1239,7 @@
     var typing = target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" ||
       target.tagName === "SELECT" || target.isContentEditable);
     if (ev.key === "Escape") {
+      if (!el.passwordModal.hidden) { closePasswordModal(); return; }
       if (!el.entryModal.hidden) { closeEntryForm(); return; }
       if (el.detail.classList.contains("is-open")) { el.detail.classList.remove("is-open"); return; }
       if (el.drawer.classList.contains("is-open")) { closeDrawer(); return; }
@@ -1356,6 +1368,47 @@
   function closeEntryForm() {
     el.entryModal.hidden = true;
     state.editingId = null;
+  }
+
+  function openPasswordModal() {
+    el.passwordForm.reset();
+    el.passwordMsg.textContent = "";
+    el.passwordMsg.className = "form-msg";
+    el.passwordModal.hidden = false;
+    setTimeout(function () { el.passwordForm.elements.password.focus(); }, 30);
+  }
+
+  function closePasswordModal() {
+    el.passwordModal.hidden = true;
+  }
+
+  async function savePasswordForm(ev) {
+    ev.preventDefault();
+    var f = el.passwordForm;
+    var pass = String(f.elements.password.value || "");
+    var confirm = String(f.elements.confirm.value || "");
+    el.passwordMsg.textContent = "";
+    el.passwordMsg.className = "form-msg";
+    if (pass.length < 6) {
+      el.passwordMsg.textContent = "新密码至少 6 位";
+      return;
+    }
+    if (pass !== confirm) {
+      el.passwordMsg.textContent = "两次输入的密码不一致";
+      return;
+    }
+    var r;
+    try {
+      r = await AUTH.changePassword(pass);
+    } catch (e) {
+      r = { ok: false, error: e && e.message ? e.message : "网络错误" };
+    }
+    if (!r.ok) {
+      el.passwordMsg.textContent = r.error || "修改失败";
+      return;
+    }
+    closePasswordModal();
+    toast("密码已修改，下次登录请使用新密码");
   }
 
   async function saveEntryForm(ev) {
@@ -1772,4 +1825,5 @@
   if (AUTH.current()) startApp();
   else showAuthGate();
 })();
+
 

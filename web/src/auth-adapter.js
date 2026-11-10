@@ -62,6 +62,11 @@ export const authAdapter = {
     cachedUser = null;
     await supabase.auth.signOut();
   },
+  async changePassword(password) {
+    const { error } = await supabase.auth.updateUser({ password });
+    if (error) return { ok: false, error: error.message || "修改密码失败" };
+    return { ok: true };
+  },
   async users() {
     const res = await adminCall({ action: "list" });
     if (!res.ok) throw new Error(res.error || "读取用户失败");
