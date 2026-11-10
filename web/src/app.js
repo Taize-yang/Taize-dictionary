@@ -1,4 +1,4 @@
-﻿/* ============================================================
+/* ============================================================
    术语词典 · Beta — application
    Vanilla JS, no dependencies. Data is embedded by tools/build.py.
    ============================================================ */
@@ -140,8 +140,7 @@
         variant: v[8] || "",
         abbr: v[9] || "",
         syn: v[10] || "",
-        img: v[11] || "",
-        owner: v[12] || "",
+        owner: v[11] || "",
         letter: letterOf(v[0] || "")
       };
       e._en = norm(e.en);
@@ -308,7 +307,8 @@
     } else if (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches) {
       document.documentElement.setAttribute("data-theme", "dark");
     }
-    var favs = storage.get(STORE.favs, []);
+    var dbFavs = DATA.favorites ? DATA.favorites() : null;
+    var favs = dbFavs !== null ? dbFavs : storage.get(STORE.favs, []);
     if (Array.isArray(favs)) {
       favs.forEach(function (id) { state.favOrder.push(id); });
       state.favs = new Set(state.favOrder);
@@ -322,7 +322,6 @@
     state.favOrder = state.favOrder.filter(function (id) { return byId.has(id); });
     state.favs = new Set(state.favOrder);
     state.recent = state.recent.filter(function (id) { return byId.has(id); });
-    storage.set(STORE.favs, state.favOrder);
     storage.set(STORE.recent, state.recent);
   })();
 
@@ -626,7 +625,6 @@
     }).join("");
     if (e.custom) catsHtml += '<span class="eyebrow-chip">自定义</span>';
     else if (e.edited) catsHtml += '<span class="eyebrow-chip">已修改</span>';
-    if (e.img) catsHtml += '<span class="eyebrow-chip img" title="原始词汇表插图编号">参考图 ' + esc(e.img) + "</span>";
 
     var grid = "";
     grid += detailRow("词源", e.etym);
@@ -655,7 +653,7 @@
         '<button class="btn danger" type="button" data-delete="' + e.id + '">删除</button>' +
       "</div>" +
       (grid ? '<dl class="detail-grid">' + grid + "</dl>" : "") +
-      '<section class="detail-note"><h3 class="section-label">注释 / 備考</h3>' +
+      '<section class="detail-note"><h3 class="section-label">注释</h3>' +
         (e.note ? "<p>" + highlight(e.note, tokens) + "</p>" : '<p class="no-note">暂无注释。</p>') +
       "</section>" +
       '<section class="detail-related"><h3 class="section-label">同领域</h3><div class="related-list">' +
@@ -687,6 +685,14 @@
     var e = byId.get(id);
     if (!e) return;
     opts = opts || {};
+    // 再次点击同一个词条：收起详情，恢复「查一个词」空状态
+    if (state.selectedId === id && !opts.force) {
+      state.selectedId = null;
+      state.cursor = -1;
+      showDetailEmpty();
+      updateSelection();
+      return;
+    }
     state.selectedId = id;
     var idx = items.findIndex(function (x) { return x.id === id; });
     if (idx >= 0) state.cursor = idx;
@@ -727,6 +733,7 @@
   /* ---------------- favorites ---------------- */
   function toggleFav(id, silent) {
     var on = state.favs.has(id);
+    var prevOrder = state.favOrder.slice();
     if (on) {
       state.favs.delete(id);
       state.favOrder = state.favOrder.filter(function (x) { return x !== id; });
@@ -734,10 +741,19 @@
       state.favs.add(id);
       state.favOrder = [id].concat(state.favOrder);
     }
-    storage.set(STORE.favs, state.favOrder);
     updateFavUI(id, !on);
     el.navFavCount.textContent = fmt(state.favs.size);
     if (!silent) toast(on ? "已取消收藏" : "已加入收藏");
+    if (DATA.setFavorite) {
+      Promise.resolve(DATA.setFavorite(id, !on)).catch(function () {
+        if (on) { state.favs.add(id); state.favOrder = prevOrder; }
+        else { state.favs.delete(id); state.favOrder = prevOrder; }
+        updateFavUI(id, on);
+        el.navFavCount.textContent = fmt(state.favs.size);
+        toast("收藏同步失败，请检查网络");
+        if (state.view === "fav") refresh(true);
+      });
+    }
     if (state.view === "fav") refresh(true);
     return !on;
   }
@@ -863,22 +879,20 @@
         h + 'px"></span><span>' + esc(k) + "</span></div>";
     }).join("");
 
-    var fieldCount = { note: 0, etym: 0, variant: 0, abbr: 0, syn: 0, img: 0 };
+    var fieldCount = { note: 0, etym: 0, variant: 0, abbr: 0, syn: 0 };
     entries.forEach(function (e) {
       if (e.note) fieldCount.note++;
       if (e.etym) fieldCount.etym++;
       if (e.variant) fieldCount.variant++;
       if (e.abbr) fieldCount.abbr++;
       if (e.syn) fieldCount.syn++;
-      if (e.img) fieldCount.img++;
     });
     var fields = [
       ["注释", fieldCount.note],
       ["词源", fieldCount.etym],
       ["变形", fieldCount.variant],
       ["全称/简称", fieldCount.abbr],
-      ["近义词", fieldCount.syn],
-      ["参考图", fieldCount.img]
+      ["近义词", fieldCount.syn]
     ];
     var fieldHtml = fields.map(function (f) {
       var pct = total ? (f[1] / total) * 100 : 0;
@@ -903,8 +917,7 @@
           "<li>多关键词用空格分隔（AND 关系）；片假名与平假名互通。</li>" +
           "<li>词条可新增、修改、删除，并可导入 / 导出词库；改动会写入云端词库，所有登录用户共享。</li>" +
           "<li>账户需登录后使用：一般用户可使用全部词库功能，并可修改自己的密码；管理员额外可新增 / 删除一般用户。</li>" +
-          "<li>收藏与最近查看保存在本机浏览器（localStorage），不随账号同步。</li>" +
-          "<li>原表「参考图」列为插图编号（如 A037 / P099），Beta 暂未附带图片文件。</li>" +
+          "<li>收藏与最近查看会随账号保存在云端（最近查看仍在本地浏览器）。</li>" +
           "<li>已知限制：无音频发音、无例句、无日文罗马字输入；分类标签为原表人工标注，个别词条存在多义。</li>" +
         "</ul>" +
         "<p class=\"muted\" style=\"font-size:12px\">更新日期：" + esc(BUILD.ts || "—") + " · 在线版（GitHub Pages + Supabase）。</p>" +
@@ -1296,7 +1309,7 @@
     if (!e) return;
     var idx = items.findIndex(function (x) { return x.id === e.id; });
     if (idx >= 0) { state.cursor = idx; scrollToIndex(idx); }
-    openWord(e.id, { scroll: false });
+    openWord(e.id, { scroll: false, force: true });
     if (idx >= 0) scrollToIndex(idx);
   }
 
@@ -1344,7 +1357,7 @@
     else refresh(true);
     if (opts.openId && byId.has(opts.openId)) {
       if (state.view !== "all" && state.view !== "fav") setView("all");
-      openWord(opts.openId);
+      openWord(opts.openId, { force: true });
     } else if (state.selectedId) {
       renderDetail(byId.get(state.selectedId));
     }
@@ -1358,7 +1371,7 @@
       ? (e.custom ? "自定义词条 #" + e.id : "基础词条 #" + e.id + "（保存后写入数据库）")
       : "保存后立即写入 Supabase 词库";
     var f = el.entryForm;
-    ["ja", "reading", "zh", "en", "cats", "variant", "abbr", "syn", "etym", "img", "note"].forEach(function (name) {
+    ["ja", "reading", "zh", "en", "cats", "variant", "abbr", "syn", "etym", "note"].forEach(function (name) {
       f.elements[name].value = e ? (name === "cats" ? e.cats.join(";") : (e[name] || "")) : "";
     });
     el.entryModal.hidden = false;
@@ -1415,7 +1428,7 @@
     ev.preventDefault();
     var f = el.entryForm;
     var src = {};
-    ["ja", "reading", "zh", "en", "cats", "variant", "abbr", "syn", "etym", "img", "note"].forEach(function (name) {
+    ["ja", "reading", "zh", "en", "cats", "variant", "abbr", "syn", "etym", "note"].forEach(function (name) {
       src[name] = String(f.elements[name].value || "").trim();
     });
     if (!src.ja) {
@@ -1448,9 +1461,12 @@
       toast("删除失败：" + (err && err.message ? err.message : "网络错误"));
       return;
     }
+    var wasFav = state.favs.has(e.id);
     state.favOrder = state.favOrder.filter(function (x) { return x !== e.id; });
     state.favs = new Set(state.favOrder);
-    storage.set(STORE.favs, state.favOrder);
+    if (wasFav && DATA.setFavorite) {
+      Promise.resolve(DATA.setFavorite(e.id, false)).catch(function () { /* best effort */ });
+    }
     showDetailEmpty();
     rebuildAfterChange();
     toast("已删除词条");
@@ -1683,6 +1699,7 @@
       return entries[0].ja;
     });
     t("favorites.toggle", function () {
+      if (window.__SUPABASE_MODE__) return "skipped (remote favorites)";
       var id = entries[0].id;
       var before = state.favs.size;
       toggleFav(id, true);

@@ -1,9 +1,9 @@
-﻿import "./styles.css";
+import "./styles.css";
 import { supabase } from "./supabase.js";
 import { authAdapter, setSessionUser } from "./auth-adapter.js";
 import { StoreAdapter, fetchAllTerms, fetchPatterns } from "./store-adapter.js";
 
-const FIELDS = ["en", "ja", "reading", "zh", "cats", "freq", "note", "etym", "variant", "abbr", "syn", "img", "owner"];
+const FIELDS = ["en", "ja", "reading", "zh", "cats", "freq", "note", "etym", "variant", "abbr", "syn", "owner"];
 const BUILD_DATE = typeof __BUILD_DATE__ !== "undefined" ? __BUILD_DATE__ : new Date().toISOString();
 const BUILD_INFO = {
   version: "0.4.0-beta",
@@ -34,6 +34,20 @@ async function loadPayload() {
   const terms = await fetchAllTerms();
   const patterns = await fetchPatterns();
   const store = new StoreAdapter(terms);
+  await store.loadFavorites();
+  // One-time migration of favorites that used to live in localStorage.
+  if (!store.favoriteIds.length) {
+    let localFavs = [];
+    try { localFavs = JSON.parse(localStorage.getItem("dict.favs") || "[]"); } catch (e) { localFavs = []; }
+    if (Array.isArray(localFavs) && localFavs.length) {
+      const valid = new Set(terms.map((t) => t.id));
+      for (const id of localFavs) {
+        if (!valid.has(Number(id))) continue;
+        try { await store.setFavorite(id, true); } catch (e) { /* ignore invalid/deleted */ }
+      }
+    }
+  }
+  try { localStorage.removeItem("dict.favs"); } catch (e) { /* ignore */ }
   const rows = store.merged();
   const payload = {
     meta: {
@@ -122,5 +136,6 @@ boot().catch((error) => {
   console.error(error);
   setError("初始化失败：" + (error && error.message ? error.message : "未知错误"));
 });
+
 
 

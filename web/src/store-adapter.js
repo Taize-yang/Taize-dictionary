@@ -1,7 +1,7 @@
 import { supabase } from "./supabase.js";
 
-const FIELDS = ["en", "ja", "reading", "zh", "cats", "freq", "note", "etym", "variant", "abbr", "syn", "img", "owner"];
-const DB_COLUMNS = "id,base_id,ja,reading,zh,en,cats,note,etym,variant,abbr,syn,img,deleted,created_by,updated_by,created_at,updated_at";
+const FIELDS = ["en", "ja", "reading", "zh", "cats", "freq", "note", "etym", "variant", "abbr", "syn", "owner"];
+const DB_COLUMNS = "id,base_id,ja,reading,zh,en,cats,note,etym,variant,abbr,syn,deleted,created_by,updated_by,created_at,updated_at";
 
 function splitCats(value) {
   return String(value || "").split(/[;；]/).map((x) => x.trim()).filter(Boolean);
@@ -53,7 +53,6 @@ const HEADER_ALIASES = {
   variant: ["別表記", "别表记", "变形", "variant"],
   abbr: ["全称/简称", "全称简称", "简称", "abbr", "abbreviation"],
   syn: ["同义词/近义词", "同义词", "近义词", "syn", "synonym"],
-  img: ["参考图", "参考图编号", "img", "image"],
 };
 
 function headerKey(label) {
@@ -68,10 +67,47 @@ export class StoreAdapter {
   constructor(terms) {
     this.raw = terms.slice();
     this.canReset = false;
+    this.favoriteIds = [];
   }
 
   setRaw(terms) {
     this.raw = terms.slice();
+  }
+
+  setFavorites(ids) {
+    var seen = Object.create(null);
+    this.favoriteIds = (ids || []).map(Number).filter(function (id) {
+      return Number.isFinite(id) && id > 0 && !seen[id] && (seen[id] = true);
+    });
+  }
+
+  favorites() {
+    return this.favoriteIds.slice();
+  }
+
+  async loadFavorites() {
+    const { data, error } = await supabase
+      .from("favorites")
+      .select("term_id")
+      .order("created_at", { ascending: false });
+    if (error) throw new Error(error.message);
+    this.favoriteIds = (data || []).map((row) => Number(row.term_id));
+    return this.favorites();
+  }
+
+  async setFavorite(termId, on) {
+    const id = Number(termId);
+    if (!Number.isFinite(id) || id <= 0) throw new Error("无效词条 ID");
+    if (on) {
+      const { error } = await supabase.from("favorites").insert({ term_id: id });
+      if (error && error.code !== "23505") throw new Error(error.message);
+      if (this.favoriteIds.indexOf(id) === -1) this.favoriteIds = [id].concat(this.favoriteIds);
+    } else {
+      const { error } = await supabase.from("favorites").delete().eq("term_id", id);
+      if (error) throw new Error(error.message);
+      this.favoriteIds = this.favoriteIds.filter((x) => x !== id);
+    }
+    return true;
   }
 
   rowOf(t) {
@@ -89,7 +125,6 @@ export class StoreAdapter {
         t.variant || "",
         t.abbr || "",
         t.syn || "",
-        t.img || "",
         "",
       ],
     };
@@ -132,7 +167,6 @@ export class StoreAdapter {
       variant: fields.variant || null,
       abbr: fields.abbr || null,
       syn: fields.syn || null,
-      img: fields.img || null,
     };
   }
 
@@ -181,7 +215,7 @@ export class StoreAdapter {
     const columns = [
       ["id", "ID"], ["ja", "日本語"], ["reading", "読み方"], ["zh", "中文"],
       ["en", "English"], ["cats", "领域"], ["note", "注释"], ["etym", "词源"],
-      ["variant", "別表記"], ["abbr", "全称/简称"], ["syn", "同义词/近义词"], ["img", "参考图"],
+      ["variant", "別表記"], ["abbr", "全称/简称"], ["syn", "同义词/近义词"],
     ];
     const lines = [csvRow(columns.map((c) => c[1]))];
     this.merged().forEach((row) => {
@@ -298,3 +332,4 @@ export async function fetchPatterns() {
   if (error) throw new Error(error.message);
   return data || [];
 }
+

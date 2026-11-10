@@ -59,7 +59,8 @@ npm run build        # 输出到 web/dist/
 | 修改密码 | 已登录用户通过 Supabase Auth 直接设置新密码（无需旧密码，至少 6 位） |
 | 导出 | 从内存生成 CSV/JSON（与旧版格式兼容） |
 | 导入 | CSV 追加 / JSON 按 id 或 base_id 合并写入 Supabase |
-| 收藏 | 目前仍存 localStorage（后续可迁 `favorites` 表） |
+| 字段 | 已移除「参考图编号」；导入文件中的旧参考图列会被忽略 |
+| 收藏 | 保存到 `public.favorites`（按用户，RLS 仅本人可读写；旧的 localStorage 收藏会在首次登录时迁移） |
 
 ## 说明
 
@@ -70,5 +71,6 @@ npm run build        # 输出到 web/dist/
   ```
   然后在 `supabase/config.toml` 的 functions 配置中仍保持 `verify_jwt = false`（函数内部自己校验 JWT）。
 - 如需把用户名登录改成邮箱登录，只需调整 `web/src/main.js` 里的 email 映射和 UI 文案。
+
 
 

@@ -627,7 +627,6 @@ html[data-theme="dark"] .mark img.logo-dark { display: block; }
   border-radius: 999px;
 }
 .eyebrow-chip.hot { color: var(--gold); border-color: color-mix(in srgb, var(--gold) 40%, transparent); background: color-mix(in srgb, var(--gold) 8%, transparent); }
-.eyebrow-chip.img { font-variant-numeric: tabular-nums; }
 .detail-ja {
   margin: 0 0 4px;
   font-family: var(--serif);
@@ -1161,5 +1160,6 @@ html[data-theme="dark"] .mark img.logo-dark { display: block; }
   .user-name, .role-badge { display: none; }
   .user-avatar { width: 32px; height: 32px; font-size: 13px; }
 }
+
 
 
