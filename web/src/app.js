@@ -237,6 +237,23 @@
     viewStats: $("#viewStats"),
     viewData: $("#viewData"),
     viewUsers: $("#viewUsers"),
+    viewFeedback: $("#viewFeedback"),
+    feedbackList: $("#feedbackList"),
+    feedbackEmpty: $("#feedbackEmpty"),
+    feedbackSub: $("#feedbackSub"),
+    feedbackPageMsg: $("#feedbackPageMsg"),
+    refreshFeedbackBtn: $("#refreshFeedbackBtn"),
+    feedbackModal: $("#feedbackModal"),
+    feedbackForm: $("#feedbackForm"),
+    feedbackModalTitle: $("#feedbackModalTitle"),
+    feedbackTerm: $("#feedbackTerm"),
+    feedbackFormMsg: $("#feedbackFormMsg"),
+    navData: $("#navData"),
+    navDataDrawer: $("#navDataDrawer"),
+    navFeedback: $("#navFeedback"),
+    navFeedbackDrawer: $("#navFeedbackDrawer"),
+    navFeedbackCount: $("#navFeedbackCount"),
+    manageGroup: $("#manageGroup"),
     dataCards: $("#dataCards"),
     customList: $("#customList"),
     customCount: $("#customCount"),
@@ -308,6 +325,7 @@
     patternBulkMode: false,
     patternSelected: new Set(),
     editingPatternId: null,
+    feedbackTermId: null,
     started: false
   };
 
@@ -739,8 +757,10 @@
         '<button class="btn primary" type="button" data-copy="' + e.id + '">复制</button>' +
         '<button class="btn' + (starred ? " is-on" : "") + '" type="button" data-fav="' + e.id + '">' +
           (starred ? "★ 已收藏" : "☆ 收藏") + "</button>" +
-        '<button class="btn" type="button" data-edit="' + e.id + '">编辑</button>' +
-        (canDelete ? '<button class="btn danger" type="button" data-delete="' + e.id + '">删除</button>' : '') +
+        (canDelete
+          ? '<button class="btn" type="button" data-edit="' + e.id + '">编辑</button>' +
+            '<button class="btn danger" type="button" data-delete="' + e.id + '">删除</button>'
+          : '<button class="btn" type="button" data-feedback="' + e.id + '">反馈</button>') +
       "</div>" +
       (grid ? '<dl class="detail-grid">' + grid + "</dl>" : "") +
       '<section class="detail-note"><h3 class="section-label">注释</h3>' +
@@ -914,7 +934,7 @@
         '<span class="pattern-no">NO. ' + pad2(p.id) + "</span>" +
         '<div class="pattern-ja">' + highlight(p.ja, tokens) + "</div>" +
         '<div class="pattern-zh">' + highlight(p.zh, tokens) + "</div>" +
-        '<button class="pattern-edit" type="button" data-edit-pattern="' + p.id + '" title="编辑句型">编辑</button>' +
+        (AUTH.isAdmin() ? '<button class="pattern-edit" type="button" data-edit-pattern="' + p.id + '" title="编辑句型">编辑</button>' : '') +
         '<button class="pattern-copy" type="button" data-copy-pattern="' + p.id + '" aria-label="复制句型" title="复制">⧉</button>' +
       "</article>";
     }).join("");
@@ -940,6 +960,10 @@
   }
 
   function openPatternForm(id) {
+    if (id && !AUTH.isAdmin()) {
+      toast("仅管理员可编辑句型");
+      return;
+    }
     var patterns = DATA.patternList ? DATA.patternList() : (META.patterns || []);
     var p = id ? patterns.filter(function (x) { return x.id === Number(id); })[0] : null;
     state.editingPatternId = p ? p.id : null;
@@ -1143,11 +1167,136 @@
       rows + "</tbody></table>";
   }
 
+  async function renderFeedback() {
+    if (!AUTH.isAdmin()) return;
+    el.feedbackPageMsg.textContent = "";
+    el.feedbackPageMsg.className = "form-msg";
+    var list = [];
+    try {
+      list = await DATA.listFeedback();
+    } catch (e) {
+      el.feedbackPageMsg.textContent = "读取反馈失败：" + (e && e.message ? e.message : "网络错误");
+      return;
+    }
+    var unread = list.filter(function (f) { return f.status !== "read"; }).length;
+    el.feedbackSub.textContent = "共 " + fmt(list.length) + " 条反馈，其中 " + fmt(unread) + " 条未读。";
+    updateFeedbackBadge(unread);
+    el.feedbackEmpty.hidden = list.length > 0;
+    el.feedbackList.hidden = list.length === 0;
+    el.feedbackList.innerHTML = list.map(function (f) {
+      var unreadItem = f.status !== "read";
+      return '<article class="feedback-card' + (unreadItem ? " is-unread" : "") + '">' +
+        '<header class="feedback-card-head">' +
+          '<strong>' + esc(f.username || "未知用户") + '</strong>' +
+          (unreadItem ? '<span class="feedback-status">未读</span>' : '<span class="feedback-status is-read">已读</span>') +
+          '<time>' + esc(formatDateTime(f.created_at)) + '</time>' +
+        '</header>' +
+        '<p class="feedback-term">' +
+          (f.term_id ? '词条 #' + f.term_id + ' · ' : "") +
+          esc(f.term_ja || "") + (f.term_zh ? '（' + esc(f.term_zh) + '）' : "") +
+        '</p>' +
+        '<p class="feedback-body">' + esc(f.message) + '</p>' +
+        '<div class="feedback-actions">' +
+          (unreadItem ? '<button class="btn ghost small" type="button" data-feedback-read="' + f.id + '">标为已读</button>' : "") +
+          '<button class="btn danger small" type="button" data-feedback-delete="' + f.id + '">删除</button>' +
+        '</div>' +
+      '</article>';
+    }).join("");
+  }
+
+  function updateFeedbackBadge(count) {
+    if (!el.navFeedbackCount) return;
+    el.navFeedbackCount.textContent = fmt(count || 0);
+    el.navFeedbackCount.hidden = !count;
+  }
+
+  async function refreshFeedbackBadge() {
+    if (!AUTH.isAdmin()) return;
+    try {
+      var list = await DATA.listFeedback();
+      updateFeedbackBadge(list.filter(function (f) { return f.status !== "read"; }).length);
+    } catch (e) { /* ignore badge errors */ }
+  }
+
+  function formatDateTime(value) {
+    if (!value) return "—";
+    try { return new Date(value).toLocaleString("zh-CN"); }
+    catch (e) { return String(value); }
+  }
+
+  function openFeedbackForm(id) {
+    var e = byId.get(Number(id));
+    if (!e) return;
+    state.feedbackTermId = e.id;
+    el.feedbackModalTitle.textContent = "反馈";
+    el.feedbackTerm.textContent = e.ja + (e.zh ? "（" + e.zh + "）" : "");
+    el.feedbackForm.reset();
+    el.feedbackFormMsg.textContent = "";
+    el.feedbackFormMsg.className = "form-msg";
+    el.feedbackModal.hidden = false;
+    setTimeout(function () { el.feedbackForm.elements.message.focus(); }, 30);
+  }
+
+  function closeFeedbackForm() {
+    el.feedbackModal.hidden = true;
+    state.feedbackTermId = null;
+  }
+
+  async function submitFeedback(ev) {
+    ev.preventDefault();
+    var message = String(el.feedbackForm.elements.message.value || "").trim();
+    el.feedbackFormMsg.textContent = "";
+    el.feedbackFormMsg.className = "form-msg";
+    if (!message) {
+      el.feedbackFormMsg.textContent = "请填写反馈内容";
+      return;
+    }
+    var e = byId.get(state.feedbackTermId);
+    var user = AUTH.current();
+    try {
+      await DATA.addFeedback({
+        username: user ? user.u : null,
+        termId: e ? e.id : null,
+        termJa: e ? e.ja : null,
+        termZh: e ? e.zh : null,
+        message: message,
+      });
+    } catch (err) {
+      el.feedbackFormMsg.textContent = "提交失败：" + (err && err.message ? err.message : "网络错误");
+      return;
+    }
+    closeFeedbackForm();
+    toast("反馈已提交，谢谢");
+  }
+
+  async function markFeedbackRead(id) {
+    try {
+      await DATA.markFeedbackRead(id);
+    } catch (e) {
+      el.feedbackPageMsg.textContent = "标记失败：" + (e && e.message ? e.message : "网络错误");
+      return;
+    }
+    await renderFeedback();
+    toast("已标记为已读");
+  }
+
+  async function removeFeedback(id) {
+    if (!window.confirm("确定删除这条反馈吗？")) return;
+    try {
+      await DATA.deleteFeedback(id);
+    } catch (e) {
+      el.feedbackPageMsg.textContent = "删除失败：" + (e && e.message ? e.message : "网络错误");
+      return;
+    }
+    await renderFeedback();
+    toast("已删除反馈");
+  }
+
   function setView(view, opts) {
     opts = opts || {};
-    if (view === "users" && !AUTH.isAdmin()) {
+    if ((view === "users" || view === "data" || view === "feedback") && !AUTH.isAdmin()) {
       view = "all";
-      toast("仅管理员可访问用户管理");
+      toast("仅管理员可访问该页面");
     }
     state.view = view;
     state.cursor = 0;
@@ -1158,6 +1307,7 @@
     el.viewStats.hidden = view !== "stats";
     el.viewData.hidden = view !== "data";
     el.viewUsers.hidden = view !== "users";
+    el.viewFeedback.hidden = view !== "feedback";
     $$("#nav .nav-item, #navManage .nav-item, #navDrawer .nav-item").forEach(function (b) {
       b.classList.toggle("is-active", b.getAttribute("data-view") === view);
     });
@@ -1167,6 +1317,7 @@
       : view === "stats" ? "输入关键词回到词条检索"
         : view === "data" ? "输入关键词回到词条检索"
           : view === "users" ? "输入关键词回到词条检索"
+            : view === "feedback" ? "输入关键词回到词条检索"
             : "搜索 日本語 / かな / 中文 / 英文";
     if (isList) {
       refresh(!opts.keepScroll);
@@ -1178,6 +1329,8 @@
       renderData();
     } else if (view === "users") {
       renderUsers();
+    } else if (view === "feedback") {
+      renderFeedback();
     }
     closeDrawer();
   }
@@ -1319,6 +1472,11 @@
       openEntryForm(Number(editBtn.getAttribute("data-edit")));
       return;
     }
+    var feedbackBtn = ev.target.closest("[data-feedback]");
+    if (feedbackBtn) {
+      openFeedbackForm(Number(feedbackBtn.getAttribute("data-feedback")));
+      return;
+    }
     var delBtn = ev.target.closest("[data-delete]");
     if (delBtn) {
       deleteEntry(Number(delBtn.getAttribute("data-delete")));
@@ -1378,6 +1536,25 @@
     });
   });
   el.passwordForm.addEventListener("submit", savePasswordForm);
+
+  /* ---- feedback ---- */
+  el.feedbackForm.addEventListener("submit", submitFeedback);
+  el.refreshFeedbackBtn.addEventListener("click", renderFeedback);
+  $$("[data-close-feedback]").forEach(function (b) {
+    b.addEventListener("click", function (ev) {
+      ev.preventDefault();
+      closeFeedbackForm();
+    });
+  });
+  el.feedbackList.addEventListener("click", function (ev) {
+    var read = ev.target.closest("[data-feedback-read]");
+    if (read) {
+      markFeedbackRead(Number(read.getAttribute("data-feedback-read")));
+      return;
+    }
+    var del = ev.target.closest("[data-feedback-delete]");
+    if (del) removeFeedback(Number(del.getAttribute("data-feedback-delete")));
+  });
 
   /* ---- entry editor ---- */
   el.addEntryBtn.addEventListener("click", function () { openEntryForm(null); });
@@ -1449,6 +1626,7 @@
     var typing = target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" ||
       target.tagName === "SELECT" || target.isContentEditable);
     if (ev.key === "Escape") {
+      if (!el.feedbackModal.hidden) { closeFeedbackForm(); return; }
       if (!el.patternModal.hidden) { closePatternForm(); return; }
       if (!el.passwordModal.hidden) { closePasswordModal(); return; }
       if (!el.entryModal.hidden) { closeEntryForm(); return; }
@@ -1562,6 +1740,10 @@
   }
 
   function openEntryForm(id) {
+    if (id && !AUTH.isAdmin()) {
+      toast("仅管理员可编辑词条");
+      return;
+    }
     var e = id ? byId.get(Number(id)) : null;
     state.editingId = e ? e.id : null;
     el.entryModalTitle.textContent = e ? "编辑词条" : "新增词条";
@@ -1717,7 +1899,11 @@
     el.userRole.textContent = admin ? "管理员" : "一般";
     el.userRole.className = "role-badge" + (admin ? " is-admin" : "");
     [el.navUsers, el.navUsersDrawer].forEach(function (b) { if (b) b.hidden = !admin; });
+    [el.navData, el.navDataDrawer].forEach(function (b) { if (b) b.hidden = !admin; });
+    [el.navFeedback, el.navFeedbackDrawer].forEach(function (b) { if (b) b.hidden = !admin; });
+    if (el.manageGroup) el.manageGroup.hidden = !admin;
     updateBulkUI();
+    if (admin) refreshFeedbackBadge();
   }
 
   async function handleAddUser(ev) {
@@ -2045,6 +2231,7 @@
   if (AUTH.current()) startApp();
   else showAuthGate();
 })();
+
 
 
 

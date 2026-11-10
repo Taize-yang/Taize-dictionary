@@ -1154,6 +1154,25 @@ html[data-theme="dark"] .mark img.logo-dark { display: block; }
 .btn.danger { border-color: color-mix(in srgb, var(--accent) 42%, transparent); color: var(--accent); }
 .btn.danger:hover { background: var(--accent-soft); }
 .manage-section { margin-bottom: 22px; }
+.feedback-toolbar { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+.feedback-card {
+  max-width: 900px;
+  margin-bottom: 12px;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+}
+.feedback-card.is-unread { border-color: color-mix(in srgb, var(--accent) 45%, var(--line)); background: color-mix(in srgb, var(--accent) 4%, var(--surface)); }
+.feedback-card-head { display: flex; align-items: center; gap: 10px; margin-bottom: 7px; }
+.feedback-card-head strong { font-size: 13.5px; }
+.feedback-card-head time { margin-left: auto; font-size: 11.5px; color: var(--muted); }
+.feedback-status { padding: 1px 6px; border-radius: 4px; font-size: 10.5px; font-weight: 700; color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, transparent); }
+.feedback-status.is-read { color: var(--muted); background: var(--surface-2); }
+.feedback-card .feedback-term { margin: 0 0 6px; font-size: 12.5px; color: var(--muted); }
+.feedback-body { margin: 0 0 12px; white-space: pre-wrap; line-height: 1.7; font-size: 13.5px; color: var(--ink-2); }
+.feedback-actions { display: flex; gap: 8px; }
+.feedback-term { font-family: var(--serif); font-size: 14px; color: var(--ink); margin: 0; }
 .custom-table, .user-table { width: 100%; max-width: 900px; border-collapse: collapse; font-size: 13px; }
 .custom-table th, .user-table th {
   text-align: left; padding: 8px 10px;

@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN" data-theme="light">
 <head>
 <meta charset="utf-8">
@@ -99,10 +99,11 @@
       </nav>
     </div>
 
-    <div class="rail-group">
+    <div class="rail-group" id="manageGroup">
       <div class="rail-label">管理</div>
       <nav class="nav" id="navManage">
-        <button class="nav-item" type="button" data-view="data">词库管理</button>
+        <button class="nav-item" type="button" data-view="data" id="navData">词库管理</button>
+        <button class="nav-item" type="button" data-view="feedback" id="navFeedback" hidden>反馈收集 <span class="nav-count" id="navFeedbackCount" hidden>0</span></button>
         <button class="nav-item" type="button" data-view="users" id="navUsers" hidden>用户管理</button>
       </nav>
     </div>
@@ -128,7 +129,8 @@
         <button class="nav-item" type="button" data-view="fav">我的收藏</button>
         <button class="nav-item" type="button" data-view="patterns">商务句型</button>
         <button class="nav-item" type="button" data-view="stats">数据统计</button>
-        <button class="nav-item" type="button" data-view="data">词库管理</button>
+        <button class="nav-item" type="button" data-view="data" id="navDataDrawer">词库管理</button>
+        <button class="nav-item" type="button" data-view="feedback" id="navFeedbackDrawer" hidden>反馈收集</button>
         <button class="nav-item" type="button" data-view="users" id="navUsersDrawer" hidden>用户管理</button>
       </nav>
     </div>
@@ -211,7 +213,7 @@
       <div class="manage-scroll">
         <div class="manage-head">
           <h2>词库管理</h2>
-          <p>新增、修改、删除词条，或导入 / 导出整个词库。所有改动保存在本机浏览器，可随时导出备份。</p>
+          <p>新增、修改、删除词条，或导入 / 导出整个词库。所有改动会写入云端词库，请定期导出备份。</p>
         </div>
         <div class="manage-cards" id="dataCards"></div>
         <div class="manage-actions">
@@ -249,6 +251,26 @@
         <div class="manage-section">
           <h3 class="section-label">账户列表</h3>
           <div id="userList"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ admin: feedback inbox ============ -->
+    <section class="view" id="viewFeedback" hidden aria-label="反馈收集">
+      <div class="manage-scroll">
+        <div class="manage-head">
+          <h2>反馈收集</h2>
+          <p id="feedbackSub">一般用户对词条提交的反馈。未读反馈会标红，管理员可标记为已读或删除。</p>
+        </div>
+        <div class="feedback-toolbar">
+          <button class="btn ghost small" id="refreshFeedbackBtn" type="button">刷新</button>
+          <span class="form-msg" id="feedbackPageMsg" role="status"></span>
+        </div>
+        <div id="feedbackList"></div>
+        <div class="empty" id="feedbackEmpty" hidden>
+          <div class="empty-mark" aria-hidden="true">信</div>
+          <h3>还没有反馈</h3>
+          <p>一般用户在词条详情页点击「反馈」提交的内容会出现在这里。</p>
         </div>
       </div>
     </section>
@@ -330,6 +352,30 @@
   </form>
 </div>
 
+<!-- ============ feedback modal ============ -->
+<div class="modal" id="feedbackModal" hidden>
+  <div class="modal-backdrop" data-close-feedback="1"></div>
+  <form class="modal-card" id="feedbackForm" role="dialog" aria-modal="true" aria-labelledby="feedbackModalTitle">
+    <header class="modal-head">
+      <h2 id="feedbackModalTitle">反馈</h2>
+      <button class="icon-btn" type="button" data-close-feedback aria-label="关闭">✕</button>
+    </header>
+    <div class="form-grid">
+      <p class="full feedback-term" id="feedbackTerm"></p>
+      <label class="full">反馈内容
+        <textarea name="message" rows="5" maxlength="1500" placeholder="请描述词条的问题、建议或补充内容…" required></textarea>
+      </label>
+      <p class="form-hint full">提交后会发送给管理员，不会修改词条本身。</p>
+    </div>
+    <footer class="modal-foot">
+      <span class="form-msg" id="feedbackFormMsg" role="status"></span>
+      <span class="modal-spacer"></span>
+      <button class="btn" type="button" data-close-feedback>取消</button>
+      <button class="btn primary" type="submit">提交反馈</button>
+    </footer>
+  </form>
+</div>
+
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <pre id="selftest-output" hidden></pre>
 
@@ -363,6 +409,8 @@
 <script type="module" src="/src/main.js"></script>
 </body>
 </html>
+
+
 
 
 

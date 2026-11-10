@@ -1,4 +1,4 @@
-﻿import { supabase } from "./supabase.js";
+import { supabase } from "./supabase.js";
 
 const FIELDS = ["en", "ja", "reading", "zh", "cats", "freq", "note", "etym", "variant", "abbr", "syn", "owner"];
 const DB_COLUMNS = "id,base_id,ja,reading,zh,en,cats,note,etym,variant,abbr,syn,deleted,created_by,updated_by,created_at,updated_at";
@@ -119,6 +119,46 @@ export class StoreAdapter {
     if (error) throw new Error(error.message);
     this.patterns = this.patterns.filter((p) => list.indexOf(p.id) === -1);
     return list.length;
+  }
+
+  async addFeedback(fields) {
+    const { data, error } = await supabase
+      .from("feedback")
+      .insert({
+        username: fields.username || null,
+        term_id: fields.termId || null,
+        term_ja: fields.termJa || null,
+        term_zh: fields.termZh || null,
+        message: fields.message,
+      })
+      .select("id")
+      .single();
+    if (error) throw new Error(error.message);
+    return data.id;
+  }
+
+  async listFeedback() {
+    const { data, error } = await supabase
+      .from("feedback")
+      .select("id,user_id,username,term_id,term_ja,term_zh,message,status,created_at,read_at")
+      .order("created_at", { ascending: false });
+    if (error) throw new Error(error.message);
+    return data || [];
+  }
+
+  async markFeedbackRead(id) {
+    const { error } = await supabase
+      .from("feedback")
+      .update({ status: "read", read_at: new Date().toISOString() })
+      .eq("id", Number(id));
+    if (error) throw new Error(error.message);
+    return true;
+  }
+
+  async deleteFeedback(id) {
+    const { error } = await supabase.from("feedback").delete().eq("id", Number(id));
+    if (error) throw new Error(error.message);
+    return true;
   }
 
   setFavorites(ids) {
