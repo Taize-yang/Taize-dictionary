@@ -33,7 +33,7 @@ async function loadPayload() {
   setLoading("正在加载词库…");
   const terms = await fetchAllTerms();
   const patterns = await fetchPatterns();
-  const store = new StoreAdapter(terms);
+  const store = new StoreAdapter(terms, patterns);
   await store.loadFavorites();
   // One-time migration of favorites that used to live in localStorage.
   if (!store.favoriteIds.length) {

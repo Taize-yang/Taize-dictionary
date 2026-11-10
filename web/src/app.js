@@ -206,6 +206,17 @@
     filterReset: $("#filterReset"),
     filterResetDrawer: $("#filterResetDrawer"),
     addEntryBtn: $("#addEntryBtn"),
+    bulkModeBtn: $("#bulkModeBtn"),
+    bulkDeleteBtn: $("#bulkDeleteBtn"),
+    bulkCancelBtn: $("#bulkCancelBtn"),
+    addPatternBtn: $("#addPatternBtn"),
+    patternBulkModeBtn: $("#patternBulkModeBtn"),
+    patternBulkDeleteBtn: $("#patternBulkDeleteBtn"),
+    patternBulkCancelBtn: $("#patternBulkCancelBtn"),
+    patternModal: $("#patternModal"),
+    patternForm: $("#patternForm"),
+    patternModalTitle: $("#patternModalTitle"),
+    patternMsg: $("#patternMsg"),
     navUsers: $("#navUsers"),
     navUsersDrawer: $("#navUsersDrawer"),
     list: $("#list"),
@@ -292,6 +303,11 @@
     recent: [],
     expandedCats: false,
     editingId: null,
+    bulkMode: false,
+    bulkSelected: new Set(),
+    patternBulkMode: false,
+    patternSelected: new Set(),
+    editingPatternId: null,
     started: false
   };
 
@@ -436,9 +452,14 @@
     var cats = e.cats.slice(0, 3).join(" · ");
     if (e.cats.length > 3) cats += " +" + (e.cats.length - 3);
     var starred = state.favs.has(e.id);
-    return '<div class="row' + (state.selectedId === e.id ? " is-selected" : "") + '" data-id="' + e.id +
+    var bulk = state.bulkMode;
+    var checked = bulk && state.bulkSelected.has(e.id);
+    return '<div class="row' + (state.selectedId === e.id ? " is-selected" : "") +
+      (bulk ? " is-bulk" : "") + (checked ? " is-checked" : "") +
+      '" data-id="' + e.id +
       '" role="option" aria-selected="' + (state.selectedId === e.id) + '" style="transform:translateY(' +
       (e._pos * ROW_H) + 'px)">' +
+      (bulk ? '<span class="row-check" aria-hidden="true">' + (checked ? "✓" : "") + "</span>" : "") +
       '<div class="row-main">' +
         '<div class="row-line"><span class="term-ja">' + highlight(e.ja, tokens) +
           (e.reading ? '<span class="reading">' + highlight(e.reading, tokens) + "</span>" : "") +
@@ -461,8 +482,10 @@
     var start = Math.max(0, Math.floor(st / ROW_H) - 6);
     var end = Math.min(total, Math.ceil((st + h) / ROW_H) + 6);
     if (!force && lastPaint.start === start && lastPaint.end === end &&
-        lastPaint.version === itemsVersion && lastPaint.selected === state.selectedId) return;
-    lastPaint = { start: start, end: end, version: itemsVersion, selected: state.selectedId };
+        lastPaint.version === itemsVersion && lastPaint.selected === state.selectedId &&
+        lastPaint.bulk === state.bulkMode && lastPaint.bulkSize === state.bulkSelected.size) return;
+    lastPaint = { start: start, end: end, version: itemsVersion, selected: state.selectedId,
+      bulk: state.bulkMode, bulkSize: state.bulkSelected.size };
     el.listInner.style.height = (total * ROW_H) + "px";
     var tokens = queryTokens();
     var html = "";
@@ -505,7 +528,7 @@
       el.listEmpty.hidden = false;
       if (state.view === "fav" && !state.query.trim() && !hasFilter) {
         el.emptyTitle.textContent = "还没有收藏词条";
-        el.emptyText.textContent = "点击词条右侧的 ☆（或按 F 键）即可收藏，收藏会保存在本机浏览器中。";
+        el.emptyText.textContent = "点击词条右侧的 ☆（或按 F 键）即可收藏，收藏会保存到你的账号。";
         el.emptyChips.hidden = true;
       } else {
         el.emptyTitle.textContent = "没有找到匹配的词条";
@@ -517,6 +540,71 @@
       el.listEmpty.hidden = true;
     }
     renderLetters();
+  }
+
+  function updateBulkUI() {
+    var admin = AUTH.isAdmin();
+    var listView = state.view === "all" || state.view === "fav";
+    if (!admin || !listView) {
+      state.bulkMode = false;
+      state.bulkSelected.clear();
+    }
+    if (!admin) {
+      state.patternBulkMode = false;
+      state.patternSelected.clear();
+    }
+    if (state.view !== "patterns") {
+      state.patternBulkMode = false;
+      state.patternSelected.clear();
+    }
+    el.bulkModeBtn.hidden = !admin || !listView || state.bulkMode;
+    el.bulkDeleteBtn.hidden = !state.bulkMode;
+    el.bulkCancelBtn.hidden = !state.bulkMode;
+    el.bulkDeleteBtn.textContent = "删除选中" + (state.bulkSelected.size ? " (" + fmt(state.bulkSelected.size) + ")" : "");
+    el.patternBulkModeBtn.hidden = !admin || state.patternBulkMode;
+    el.patternBulkDeleteBtn.hidden = !state.patternBulkMode;
+    el.patternBulkCancelBtn.hidden = !state.patternBulkMode;
+    el.patternBulkDeleteBtn.textContent = "删除选中" + (state.patternSelected.size ? " (" + fmt(state.patternSelected.size) + ")" : "");
+  }
+
+  function toggleTermBulk(on) {
+    state.bulkMode = !!on;
+    state.bulkSelected.clear();
+    if (on) {
+      state.selectedId = null;
+      showDetailEmpty();
+    }
+    updateBulkUI();
+    paintList(true);
+  }
+
+  function toggleTermSelected(id) {
+    if (state.bulkSelected.has(id)) state.bulkSelected.delete(id);
+    else state.bulkSelected.add(id);
+    updateBulkUI();
+    paintList(true);
+  }
+
+  async function deleteSelectedTerms() {
+    var ids = Array.from(state.bulkSelected);
+    if (!ids.length) { toast("请先选择要删除的词条"); return; }
+    if (!window.confirm("确定删除选中的 " + ids.length + " 条词条吗？\n删除后管理员可通过备份恢复。")) return;
+    try {
+      await DATA.removeMany(ids);
+    } catch (e) {
+      toast("删除失败：" + (e && e.message ? e.message : "网络错误"));
+      return;
+    }
+    state.bulkSelected.clear();
+    state.bulkMode = false;
+    toast("已删除 " + ids.length + " 条词条");
+    rebuildAfterChange();
+  }
+
+  function togglePatternBulk(on) {
+    state.patternBulkMode = !!on;
+    state.patternSelected.clear();
+    filterPatterns();
   }
 
   function renderLetters() {
@@ -547,6 +635,7 @@
     state.cursor = Math.min(state.cursor, Math.max(0, items.length - 1));
     if (resetScroll) { el.list.scrollTop = 0; }
     updateToolbar();
+    updateBulkUI();
     lastPaint.version = -1;
     paintList(true);
     if (state.selectedId && !byId.has(state.selectedId)) state.selectedId = null;
@@ -816,10 +905,15 @@
   /* ---------------- patterns ---------------- */
   function patternCards(patterns, tokens) {
     return patterns.map(function (p) {
-      return '<article class="pattern-card">' +
+      var bulk = state.patternBulkMode;
+      var checked = bulk && state.patternSelected.has(p.id);
+      return '<article class="pattern-card' + (bulk ? " is-bulk" : "") + (checked ? " is-checked" : "") +
+        '" data-pattern-id="' + p.id + '">' +
+        (bulk ? '<span class="pattern-check" aria-hidden="true">' + (checked ? "✓" : "") + "</span>" : "") +
         '<span class="pattern-no">NO. ' + pad2(p.id) + "</span>" +
         '<div class="pattern-ja">' + highlight(p.ja, tokens) + "</div>" +
         '<div class="pattern-zh">' + highlight(p.zh, tokens) + "</div>" +
+        '<button class="pattern-edit" type="button" data-edit-pattern="' + p.id + '" title="编辑句型">编辑</button>' +
         '<button class="pattern-copy" type="button" data-copy-pattern="' + p.id + '" aria-label="复制句型" title="复制">⧉</button>' +
       "</article>";
     }).join("");
@@ -841,6 +935,74 @@
     el.patternSub.textContent = tokens.length
       ? "匹配 " + fmt(patterns.length) + " / " + fmt(all.length) + " 条"
       : "邮件与交涉中常用的日语句型，共 " + fmt(all.length) + " 条 · 点击右上角复制";
+    updateBulkUI();
+  }
+
+  function openPatternForm(id) {
+    var patterns = DATA.patternList ? DATA.patternList() : (META.patterns || []);
+    var p = id ? patterns.filter(function (x) { return x.id === Number(id); })[0] : null;
+    state.editingPatternId = p ? p.id : null;
+    el.patternModalTitle.textContent = p ? "编辑商务句型" : "新增商务句型";
+    el.patternForm.elements.ja.value = p ? (p.ja || "") : "";
+    el.patternForm.elements.zh.value = p ? (p.zh || "") : "";
+    el.patternForm.elements.sort.value = p ? (p.sort != null ? p.sort : "") : "";
+    el.patternMsg.textContent = "";
+    el.patternMsg.className = "form-msg";
+    el.patternModal.hidden = false;
+    setTimeout(function () { el.patternForm.elements.ja.focus(); }, 30);
+  }
+
+  function closePatternForm() {
+    el.patternModal.hidden = true;
+    state.editingPatternId = null;
+  }
+
+  async function savePatternForm(ev) {
+    ev.preventDefault();
+    var wasEdit = !!state.editingPatternId;
+    var f = el.patternForm;
+    var ja = String(f.elements.ja.value || "").trim();
+    var zh = String(f.elements.zh.value || "").trim();
+    var sort = String(f.elements.sort.value || "").trim();
+    el.patternMsg.textContent = "";
+    el.patternMsg.className = "form-msg";
+    if (!ja) {
+      el.patternMsg.textContent = "日文句型不能为空";
+      return;
+    }
+    try {
+      if (state.editingPatternId) {
+        await DATA.updatePattern(state.editingPatternId, { ja: ja, zh: zh, sort: sort === "" ? 0 : Number(sort) });
+      } else {
+        await DATA.addPattern({ ja: ja, zh: zh, sort: sort === "" ? null : Number(sort) });
+      }
+    } catch (e) {
+      el.patternMsg.textContent = "保存失败：" + (e && e.message ? e.message : "网络错误");
+      return;
+    }
+    META.patterns = DATA.patternList();
+    closePatternForm();
+    updateChromeCounts();
+    filterPatterns();
+    toast(wasEdit ? "句型已更新" : "句型已新增");
+  }
+
+  async function deleteSelectedPatterns() {
+    var ids = Array.from(state.patternSelected);
+    if (!ids.length) { toast("请先选择要删除的句型"); return; }
+    if (!window.confirm("确定删除选中的 " + ids.length + " 条商务句型吗？")) return;
+    try {
+      await DATA.removePatterns(ids);
+    } catch (e) {
+      toast("删除失败：" + (e && e.message ? e.message : "网络错误"));
+      return;
+    }
+    META.patterns = DATA.patternList();
+    state.patternSelected.clear();
+    state.patternBulkMode = false;
+    updateChromeCounts();
+    filterPatterns();
+    toast("已删除 " + ids.length + " 条句型");
   }
 
   /* ---------------- stats ---------------- */
@@ -988,6 +1150,7 @@
     }
     state.view = view;
     state.cursor = 0;
+    updateBulkUI();
     var isList = !!LIST_VIEWS[view];
     el.viewList.hidden = !isList;
     el.viewPatterns.hidden = view !== "patterns";
@@ -1112,13 +1275,17 @@
 
   el.list.addEventListener("scroll", function () { schedulePaint(); }, { passive: true });
   el.list.addEventListener("click", function (ev) {
+    var row = ev.target.closest(".row");
+    if (state.bulkMode) {
+      if (row) toggleTermSelected(Number(row.getAttribute("data-id")));
+      return;
+    }
     var star = ev.target.closest("[data-star]");
     if (star) {
       ev.stopPropagation();
       toggleFav(Number(star.getAttribute("data-star")));
       return;
     }
-    var row = ev.target.closest(".row");
     if (row) openWord(Number(row.getAttribute("data-id")));
   });
   el.letterBar.addEventListener("click", function (ev) {
@@ -1166,10 +1333,36 @@
   });
 
   el.patternList.addEventListener("click", function (ev) {
+    var edit = ev.target.closest("[data-edit-pattern]");
+    if (edit) {
+      openPatternForm(Number(edit.getAttribute("data-edit-pattern")));
+      return;
+    }
+    var card = ev.target.closest(".pattern-card");
+    if (state.patternBulkMode && card) {
+      var pid = Number(card.getAttribute("data-pattern-id"));
+      if (state.patternSelected.has(pid)) state.patternSelected.delete(pid);
+      else state.patternSelected.add(pid);
+      filterPatterns();
+      return;
+    }
     var btn = ev.target.closest("[data-copy-pattern]");
     if (!btn) return;
     var p = (META.patterns || []).find(function (x) { return String(x.id) === btn.getAttribute("data-copy-pattern"); });
     if (p) copyText(p.ja + "\n" + p.zh).then(function (ok) { toast(ok ? "已复制句型" : "复制失败"); });
+  });
+
+  /* ---- business patterns ---- */
+  el.addPatternBtn.addEventListener("click", function () { openPatternForm(null); });
+  el.patternBulkModeBtn.addEventListener("click", function () { togglePatternBulk(true); });
+  el.patternBulkCancelBtn.addEventListener("click", function () { togglePatternBulk(false); });
+  el.patternBulkDeleteBtn.addEventListener("click", deleteSelectedPatterns);
+  el.patternForm.addEventListener("submit", savePatternForm);
+  $$("[data-close-pattern]").forEach(function (b) {
+    b.addEventListener("click", function (ev) {
+      ev.preventDefault();
+      closePatternForm();
+    });
   });
 
   /* ---- auth forms ----
@@ -1187,6 +1380,9 @@
 
   /* ---- entry editor ---- */
   el.addEntryBtn.addEventListener("click", function () { openEntryForm(null); });
+  el.bulkModeBtn.addEventListener("click", function () { toggleTermBulk(true); });
+  el.bulkCancelBtn.addEventListener("click", function () { toggleTermBulk(false); });
+  el.bulkDeleteBtn.addEventListener("click", deleteSelectedTerms);
   el.entryForm.addEventListener("submit", saveEntryForm);
   $$("[data-close-modal]").forEach(function (b) {
     b.addEventListener("click", function (ev) {
@@ -1252,6 +1448,7 @@
     var typing = target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" ||
       target.tagName === "SELECT" || target.isContentEditable);
     if (ev.key === "Escape") {
+      if (!el.patternModal.hidden) { closePatternForm(); return; }
       if (!el.passwordModal.hidden) { closePasswordModal(); return; }
       if (!el.entryModal.hidden) { closeEntryForm(); return; }
       if (el.detail.classList.contains("is-open")) { el.detail.classList.remove("is-open"); return; }
@@ -1515,6 +1712,7 @@
     el.userRole.textContent = admin ? "管理员" : "一般";
     el.userRole.className = "role-badge" + (admin ? " is-admin" : "");
     [el.navUsers, el.navUsersDrawer].forEach(function (b) { if (b) b.hidden = !admin; });
+    updateBulkUI();
   }
 
   async function handleAddUser(ev) {

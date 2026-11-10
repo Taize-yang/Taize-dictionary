@@ -17,6 +17,7 @@
 - 词库 CSV / JSON 导入导出
 - 收藏保存到数据库 `favorites`（按用户，可跨设备；旧 localStorage 收藏自动迁移）
 - 再次点击同一词条可收起详情，恢复「查一个词」页面
+- 商务句型可新增 / 编辑（登录用户）；管理员可多选删除词条与句型
 - 管理员额外可新增 / 删除一般用户（Edge Function）
 - 登录用户可点击右上角钥匙图标修改自己的密码（无需旧密码）
 - 深浅色、响应式
@@ -69,6 +70,7 @@ npm run dev        # http://localhost:5173
 - 前端代码公开；**词条数据只在登录后由 Supabase 返回**，匿名 API 返回 401。
 - service_role / 数据库密码 / Personal Access Token 只保存在本机 `.env.local` 或 Supabase 后台，绝不进前端或仓库。
 - 管理员操作（增删用户）只通过 Edge Function 的服务端密钥执行。
+
 
 
 

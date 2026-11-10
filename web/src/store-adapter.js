@@ -64,14 +64,61 @@ function headerKey(label) {
 }
 
 export class StoreAdapter {
-  constructor(terms) {
+  constructor(terms, patterns) {
     this.raw = terms.slice();
+    this.patterns = (patterns || []).slice();
     this.canReset = false;
     this.favoriteIds = [];
   }
 
   setRaw(terms) {
     this.raw = terms.slice();
+  }
+
+  setPatterns(patterns) {
+    this.patterns = (patterns || []).slice();
+  }
+
+  patternList() {
+    return this.patterns.slice();
+  }
+
+  async addPattern(fields) {
+    const sort = fields.sort != null ? Number(fields.sort) :
+      (this.patterns.reduce((max, p) => Math.max(max, Number(p.sort) || 0), 0) + 1);
+    const { data, error } = await supabase
+      .from("patterns")
+      .insert({ ja: fields.ja, zh: fields.zh || null, sort })
+      .select("id,ja,zh,sort")
+      .single();
+    if (error) throw new Error(error.message);
+    this.patterns.push(data);
+    this.patterns.sort((a, b) => (a.sort - b.sort) || (a.id - b.id));
+    return data;
+  }
+
+  async updatePattern(id, fields) {
+    const { data, error } = await supabase
+      .from("patterns")
+      .update({ ja: fields.ja, zh: fields.zh || null, sort: Number(fields.sort) || 0 })
+      .eq("id", Number(id))
+      .select("id,ja,zh,sort")
+      .single();
+    if (error) throw new Error(error.message);
+    const index = this.patterns.findIndex((p) => p.id === Number(id));
+    if (index >= 0) this.patterns[index] = data;
+    else this.patterns.push(data);
+    this.patterns.sort((a, b) => (a.sort - b.sort) || (a.id - b.id));
+    return data;
+  }
+
+  async removePatterns(ids) {
+    const list = (ids || []).map(Number).filter((id) => Number.isFinite(id));
+    if (!list.length) return 0;
+    const { error } = await supabase.from("patterns").delete().in("id", list);
+    if (error) throw new Error(error.message);
+    this.patterns = this.patterns.filter((p) => list.indexOf(p.id) === -1);
+    return list.length;
   }
 
   setFavorites(ids) {
@@ -203,6 +250,18 @@ export class StoreAdapter {
     if (error) throw new Error(error.message);
     this.raw = this.raw.filter((x) => x.id !== Number(id));
     return true;
+  }
+
+  async removeMany(ids) {
+    const list = (ids || []).map(Number).filter((id) => Number.isFinite(id));
+    if (!list.length) return 0;
+    const { error } = await supabase
+      .from("terms")
+      .update({ deleted: true })
+      .in("id", list);
+    if (error) throw new Error(error.message);
+    this.raw = this.raw.filter((x) => list.indexOf(x.id) === -1);
+    return list.length;
   }
 
   async refresh() {

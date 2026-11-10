@@ -151,6 +151,9 @@
         </div>
         <div class="toolbar-actions">
           <button class="btn ghost small" id="addEntryBtn" type="button" title="新增词条">＋ 新增</button>
+          <button class="btn ghost small" id="bulkModeBtn" type="button" title="多选词条" hidden>多选</button>
+          <button class="btn danger small" id="bulkDeleteBtn" type="button" title="删除选中词条" hidden>删除选中</button>
+          <button class="btn ghost small" id="bulkCancelBtn" type="button" title="退出多选" hidden>取消</button>
           <label class="sr-only" for="sortSelect">排序方式</label>
           <select class="select" id="sortSelect">
             <option value="kana">五十音顺 あ→わ</option>
@@ -177,8 +180,18 @@
     <!-- ============ patterns view ============ -->
     <section class="view" id="viewPatterns" hidden aria-label="商务句型">
       <div class="patterns-head">
-        <h2>商务句型</h2>
-        <p id="patternSub">邮件与交涉中常用的日语句型，共 32 条 · 点击右上角复制</p>
+        <div class="patterns-title-row">
+          <div>
+            <h2>商务句型</h2>
+            <p id="patternSub">邮件与交涉中常用的日语句型，共 32 条 · 点击右上角复制</p>
+          </div>
+          <div class="patterns-actions">
+            <button class="btn ghost small" id="addPatternBtn" type="button" title="新增商务句型">＋ 新增</button>
+            <button class="btn ghost small" id="patternBulkModeBtn" type="button" title="多选句型" hidden>多选</button>
+            <button class="btn danger small" id="patternBulkDeleteBtn" type="button" title="删除选中句型" hidden>删除选中</button>
+            <button class="btn ghost small" id="patternBulkCancelBtn" type="button" title="退出多选" hidden>取消</button>
+          </div>
+        </div>
       </div>
       <div class="pattern-list" id="patternList"></div>
       <div class="empty" id="patternEmpty" hidden>
@@ -319,6 +332,33 @@
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <pre id="selftest-output" hidden></pre>
+
+<!-- ============ pattern editor modal ============ -->
+<div class="modal" id="patternModal" hidden>
+  <div class="modal-backdrop" data-close-pattern="1"></div>
+  <form class="modal-card" id="patternForm" role="dialog" aria-modal="true" aria-labelledby="patternModalTitle">
+    <header class="modal-head">
+      <h2 id="patternModalTitle">新增商务句型</h2>
+      <button class="icon-btn" type="button" data-close-pattern aria-label="关闭">✕</button>
+    </header>
+    <div class="form-grid">
+      <label class="full">日文句型 <span class="req">*</span>
+        <textarea name="ja" rows="3" maxlength="500" required></textarea>
+      </label>
+      <label class="full">中文释义
+        <textarea name="zh" rows="2" maxlength="500"></textarea>
+      </label>
+      <label>排序（数字，越小越靠前）<input name="sort" type="number" min="0" step="1"></label>
+      <p class="form-hint full">日文句型必填；保存后所有登录用户都能看到。</p>
+    </div>
+    <footer class="modal-foot">
+      <span class="form-msg" id="patternMsg" role="status"></span>
+      <span class="modal-spacer"></span>
+      <button class="btn" type="button" data-close-pattern>取消</button>
+      <button class="btn primary" type="submit">保存句型</button>
+    </footer>
+  </form>
+</div>
 
 <script type="module" src="/src/main.js"></script>
 </body>

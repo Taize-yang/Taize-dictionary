@@ -404,7 +404,7 @@ html[data-theme="dark"] .mark img.logo-dark { display: block; }
   background: var(--accent-soft);
   padding: 1px 7px; border-radius: 999px;
 }
-.toolbar-actions { display: flex; align-items: center; gap: 8px; flex: none; }
+.toolbar-actions { display: flex; align-items: center; gap: 8px; flex: none; flex-wrap: wrap; justify-content: flex-end; }
 .select {
   height: 32px;
   padding: 0 28px 0 10px;
@@ -529,6 +529,20 @@ html[data-theme="dark"] .mark img.logo-dark { display: block; }
   transform: translateY(-1px);
 }
 .row-side { flex: none; display: flex; align-items: center; gap: 4px; }
+.row.is-bulk { cursor: pointer; }
+.row.is-bulk .star { display: none; }
+.row-check {
+  width: 20px; height: 20px; flex: none;
+  display: grid; place-items: center;
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
+  font-size: 13px;
+  line-height: 1;
+  color: var(--accent-ink);
+  background: var(--surface);
+}
+.row.is-checked { background: color-mix(in srgb, var(--accent) 8%, transparent); }
+.row.is-checked .row-check { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
 .star {
   width: 32px; height: 32px;
   display: grid; place-items: center;
@@ -730,6 +744,8 @@ html[data-theme="dark"] .mark img.logo-dark { display: block; }
    Patterns view
    ============================================================ */
 .patterns-head { padding: 20px 24px 12px; border-bottom: 1px solid var(--line); }
+.patterns-title-row { display: flex; align-items: flex-end; justify-content: space-between; gap: 14px; flex-wrap: wrap; }
+.patterns-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .patterns-head h2 {
   margin: 0 0 4px;
   font-family: var(--serif);
@@ -756,6 +772,30 @@ html[data-theme="dark"] .mark img.logo-dark { display: block; }
   transition: border-color .14s, transform .14s, box-shadow .14s;
 }
 .pattern-card:hover { border-color: var(--line-strong); transform: translateY(-1px); box-shadow: var(--shadow); }
+.pattern-card.is-bulk { cursor: pointer; padding-left: 42px; }
+.pattern-card.is-checked { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 6%, var(--surface)); }
+.pattern-check {
+  position: absolute; top: 14px; left: 14px;
+  width: 20px; height: 20px;
+  display: grid; place-items: center;
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
+  font-size: 13px;
+  color: var(--accent-ink);
+  background: var(--surface);
+}
+.pattern-card.is-checked .pattern-check { background: var(--accent); border-color: var(--accent); }
+.pattern-edit {
+  position: absolute; top: 12px; right: 46px;
+  height: 28px; padding: 0 8px;
+  border-radius: 7px;
+  color: var(--muted);
+  font-size: 12px;
+  opacity: .38;
+  transition: opacity .13s, background .13s, color .13s;
+}
+.pattern-card:hover .pattern-edit { opacity: 1; }
+.pattern-edit:hover { background: var(--surface-2); color: var(--accent); }
 .pattern-no {
   font-size: 10px;
   font-weight: 700;

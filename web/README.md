@@ -1,4 +1,4 @@
-# 日汉术语词典 · Beta（Vite + Supabase）
+﻿# 日汉术语词典 · Beta（Vite + Supabase）
 
 线上地址：<https://taize-yang.github.io/Taize-dictionary/>
 
@@ -60,6 +60,8 @@ npm run build        # 输出到 web/dist/
 | 导出 | 从内存生成 CSV/JSON（与旧版格式兼容） |
 | 导入 | CSV 追加 / JSON 按 id 或 base_id 合并写入 Supabase |
 | 字段 | 已移除「参考图编号」；导入文件中的旧参考图列会被忽略 |
+| 商务句型 | 登录用户可新增 / 编辑句型；管理员可多选删除 |
+| 批量删除 | 管理员可在「所有词条」和「商务句型」中多选删除 |
 | 收藏 | 保存到 `public.favorites`（按用户，RLS 仅本人可读写；旧的 localStorage 收藏会在首次登录时迁移） |
 
 ## 说明
@@ -71,6 +73,7 @@ npm run build        # 输出到 web/dist/
   ```
   然后在 `supabase/config.toml` 的 functions 配置中仍保持 `verify_jwt = false`（函数内部自己校验 JWT）。
 - 如需把用户名登录改成邮箱登录，只需调整 `web/src/main.js` 里的 email 映射和 UI 文案。
+
 
 
 
