@@ -1,4 +1,4 @@
-/* ============================================================
+﻿/* ============================================================
    术语词典 · Beta — application
    Vanilla JS, no dependencies. Data is embedded by tools/build.py.
    ============================================================ */
@@ -151,7 +151,6 @@
       e._all = e._en + "\u0001" + e._ja + "\u0001" + e._rd + "\u0001" + e._zh + "\u0001" + e._note;
       e.rdKey = foldKana(e.reading) || foldKana(e.ja);
       e.kana = kanaRowOf(e.rdKey.charAt(0));
-      e.custom = DATA.isCustom(e.id);
       e.edited = DATA.isEdited(e.id);
       list.push(e);
       by.set(e.id, e);
@@ -255,8 +254,11 @@
     navFeedbackCount: $("#navFeedbackCount"),
     manageGroup: $("#manageGroup"),
     dataCards: $("#dataCards"),
-    customList: $("#customList"),
-    customCount: $("#customCount"),
+    auditList: $("#auditList"),
+    auditCount: $("#auditCount"),
+    auditEmpty: $("#auditEmpty"),
+    auditMsg: $("#auditMsg"),
+    refreshAuditBtn: $("#refreshAuditBtn"),
     userList: $("#userList"),
     addUserForm: $("#addUserForm"),
     newUserName: $("#newUserName"),
@@ -730,8 +732,7 @@
     var catsHtml = e.cats.map(function (c) {
       return '<span class="eyebrow-chip">' + esc(c) + "</span>";
     }).join("");
-    if (e.custom) catsHtml += '<span class="eyebrow-chip">自定义</span>';
-    else if (e.edited) catsHtml += '<span class="eyebrow-chip">已修改</span>';
+    if (e.edited) catsHtml += '<span class="eyebrow-chip">已修改</span>';
 
     var grid = "";
     grid += detailRow("词源", e.etym);
@@ -768,7 +769,7 @@
       "</section>" +
       '<section class="detail-related"><h3 class="section-label">同领域</h3><div class="related-list">' +
         relatedHtml + "</div></section>" +
-      '<div class="detail-footnote">' + (e.custom ? "自定义词条" : "词条") + " #" + e.id +
+      '<div class="detail-footnote">词条 #' + e.id +
         " · 共 " + e.cats.length + " 个领域标签</div>";
 
     el.detailBody.innerHTML = html;
@@ -1046,7 +1047,6 @@
       { n: total, l: "词条总数 ENTRIES" },
       { n: uniqueJa, l: "日本語术语 TERMS" },
       { n: cats.length, l: "领域标签 DOMAINS" },
-      { n: counts.added, l: "自定义词条 CUSTOM" },
       { n: (META.patterns || []).length, l: "商务句型 PATTERNS" }
     ];
     var heroHtml = hero.map(function (h) {
@@ -1097,7 +1097,7 @@
         "<h3>日汉术语词典 · Beta " + esc(BUILD.version || "") + "</h3>" +
         "<p>共 " +
         fmt((META.total || 0)) + " 条基础日文词条（附中文释义与英文对照）、" + fmt((META.patterns || []).length) + " 条商务句型；当前显示 " +
-        fmt(total) + " 条（含自定义与修改）。</p>" +
+        fmt(total) + " 条（含新增与修改）。</p>" +
         "<p>当前版本为 Beta，以日语为主、中文释义，英文作为对照与词源参考：</p>" +
         "<ul>" +
           "<li>默认按日语读音（五十音）排序并检索；支持日本語、かな（假名）与中文检索，也可用英文检索作为补充。</li>" +
@@ -1114,31 +1114,62 @@
   /* ---------------- views ---------------- */
   var LIST_VIEWS = { all: 1, fav: 1 };
 
-  function renderData() {
+  function auditActionLabel(action) {
+    if (action === "insert") return "新增";
+    if (action === "delete") return "删除";
+    return "修改";
+  }
+
+  async function renderData() {
     var c = DATA.counts();
     if (el.resetDataBtn) el.resetDataBtn.hidden = !DATA.canReset;
+    el.auditMsg.textContent = "";
+    el.auditMsg.className = "form-msg";
+    var logs = [];
+    try {
+      logs = await DATA.listAuditLog(200);
+    } catch (e) {
+      el.auditMsg.textContent = "读取变更记录失败：" + (e && e.message ? e.message : "网络错误");
+    }
     el.dataCards.innerHTML =
       '<div class="manage-card"><b>' + fmt(c.total) + '</b><span>当前词条</span></div>' +
-      '<div class="manage-card"><b>' + fmt(c.added) + '</b><span>自定义新增</span></div>' +
       '<div class="manage-card"><b>' + fmt(c.edited) + '</b><span>已修改</span></div>' +
-      '<div class="manage-card"><b>' + fmt(c.deleted) + '</b><span>已删除</span></div>' +
-      '<div class="manage-card"><b>' + fmt(c.base) + '</b><span>基础词条</span></div>';
-    var custom = entries.filter(function (e) { return e.custom; });
-    if (el.customCount) el.customCount.textContent = "（" + fmt(custom.length) + " 条）";
-    if (!custom.length) {
-      el.customList.innerHTML = '<p class="table-empty">暂无自定义词条。点击列表上方的「＋ 新增」，或在词条详情中编辑现有词条。</p>';
-      return;
-    }
-    var rows = custom.map(function (e) {
-      return '<tr><td>' + e.id + '</td><td class="ja">' + esc(e.ja) + '</td><td>' + esc(e.reading) +
-        '</td><td>' + esc(e.zh) + '</td><td><div class="table-actions">' +
-        '<button class="btn ghost small" type="button" data-manage-edit="' + e.id + '">编辑</button>' +
-        (AUTH.isAdmin() ? '<button class="btn ghost small" type="button" data-manage-delete="' + e.id + '">删除</button>' : '') +
-        '</div></td></tr>';
+      '<div class="manage-card"><b>' + fmt(logs.length) + '</b><span>变更记录</span></div>';
+    el.auditCount.textContent = "（" + fmt(logs.length) + " 条）";
+    el.auditEmpty.hidden = logs.length > 0;
+    el.auditList.hidden = logs.length === 0;
+    el.auditList.innerHTML = logs.map(function (log) {
+      var row = log.after || log.before || {};
+      var tableLabel = log.table_name === "patterns" ? "句型" : "词条";
+      var action = log.action || "update";
+      var reverted = !!log.reverted_at;
+      return '<div class="audit-item' + (reverted ? " is-reverted" : "") + '">' +
+        '<div class="audit-main">' +
+          '<span class="audit-action is-' + action + '">' + auditActionLabel(action) + '</span>' +
+          '<span class="audit-target">' + tableLabel + ' #' + log.record_id + ' · ' + esc(row.ja || "") + '</span>' +
+          '<span class="audit-meta">' + esc(log.changed_by_name || "系统") + ' · ' + esc(formatDateTime(log.created_at)) + '</span>' +
+        '</div>' +
+        '<div class="audit-side">' +
+          (reverted
+            ? '<span class="muted" style="font-size:12px">已回退</span>'
+            : '<button class="btn ghost small" type="button" data-audit-rollback="' + log.id + '">回退</button>') +
+        '</div>' +
+      '</div>';
     }).join("");
-    el.customList.innerHTML =
-      '<table class="custom-table"><thead><tr><th>ID</th><th>日本語</th><th>読み方</th><th>中文</th><th></th></tr></thead><tbody>' +
-      rows + "</tbody></table>";
+  }
+
+  async function rollbackAudit(id) {
+    if (!window.confirm("确定回退这条变更吗？回退后会生成一条新的变更记录。")) return;
+    try {
+      await DATA.rollbackAudit(id);
+      await DATA.reloadAll();
+      META.patterns = DATA.patternList();
+      META.total = DATA.merged().length;
+      rebuildAfterChange();
+      toast("已回退该变更");
+    } catch (e) {
+      el.auditMsg.textContent = "回退失败：" + (e && e.message ? e.message : "网络错误");
+    }
   }
 
   async function renderUsers() {
@@ -1537,6 +1568,13 @@
   });
   el.passwordForm.addEventListener("submit", savePasswordForm);
 
+  /* ---- audit log ---- */
+  el.refreshAuditBtn.addEventListener("click", renderData);
+  el.auditList.addEventListener("click", function (ev) {
+    var b = ev.target.closest("[data-audit-rollback]");
+    if (b) rollbackAudit(Number(b.getAttribute("data-audit-rollback")));
+  });
+
   /* ---- feedback ---- */
   el.feedbackForm.addEventListener("submit", submitFeedback);
   el.refreshFeedbackBtn.addEventListener("click", renderFeedback);
@@ -1586,19 +1624,13 @@
       toast("云端词库请通过备份恢复（本版暂未开放一键重置）");
       return;
     }
-    if (!window.confirm("确定恢复初始词库吗？\n将清除所有自定义词条、修改与删除记录（不影响账户）。")) return;
+    if (!window.confirm("确定恢复初始词库吗？\n将清除所有新增、修改与删除记录（不影响账户）。")) return;
     try { await DATA.reset(); } catch (e) { toast("恢复失败：" + (e && e.message ? e.message : "网络错误")); return; }
     state.favOrder = state.favOrder.filter(function (id) { return BASE_ROWS.some(function (r) { return r.id === id; }); });
     state.favs = new Set(state.favOrder);
     showDetailEmpty();
     rebuildAfterChange();
     toast("已恢复初始词库");
-  });
-  el.customList.addEventListener("click", function (ev) {
-    var edit = ev.target.closest("[data-manage-edit]");
-    if (edit) { openEntryForm(Number(edit.getAttribute("data-manage-edit"))); return; }
-    var del = ev.target.closest("[data-manage-delete]");
-    if (del) deleteEntry(Number(del.getAttribute("data-manage-delete")));
   });
 
   /* ---- user management (admin) ---- */
@@ -1748,7 +1780,7 @@
     state.editingId = e ? e.id : null;
     el.entryModalTitle.textContent = e ? "编辑词条" : "新增词条";
     el.entryFormHint.textContent = e
-      ? (e.custom ? "自定义词条 #" + e.id : "基础词条 #" + e.id + "（保存后写入数据库）")
+      ? "词条 #" + e.id + "（保存后写入数据库）"
       : "保存后立即写入 Supabase 词库";
     var f = el.entryForm;
     ["ja", "reading", "zh", "en", "cats", "variant", "abbr", "syn", "etym", "note"].forEach(function (name) {
@@ -2231,6 +2263,7 @@
   if (AUTH.current()) startApp();
   else showAuthGate();
 })();
+
 
 
 

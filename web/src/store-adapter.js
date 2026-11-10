@@ -161,6 +161,29 @@ export class StoreAdapter {
     return true;
   }
 
+  async listAuditLog(limit) {
+    const { data, error } = await supabase
+      .from("audit_log")
+      .select("id,table_name,record_id,action,before,after,changed_by,changed_by_name,created_at,reverted_at")
+      .order("created_at", { ascending: false })
+      .limit(limit || 200);
+    if (error) throw new Error(error.message);
+    return data || [];
+  }
+
+  async rollbackAudit(id) {
+    const { error } = await supabase.rpc("rollback_audit", { log_id: Number(id) });
+    if (error) throw new Error(error.message);
+    return true;
+  }
+
+  async reloadAll() {
+    this.raw = await fetchAllTerms();
+    this.patterns = await fetchPatterns();
+    await this.loadFavorites();
+    return this.raw;
+  }
+
   setFavorites(ids) {
     var seen = Object.create(null);
     this.favoriteIds = (ids || []).map(Number).filter(function (id) {

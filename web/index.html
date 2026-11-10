@@ -224,8 +224,13 @@
           <button class="btn danger" id="resetDataBtn" type="button">恢复初始词库</button>
         </div>
         <div class="manage-section">
-          <h3 class="section-label">自定义词条 <span class="muted" id="customCount"></span></h3>
-          <div id="customList"></div>
+          <div class="audit-head">
+            <h3 class="section-label">变更记录 <span class="muted" id="auditCount"></span></h3>
+            <button class="btn ghost small" id="refreshAuditBtn" type="button">刷新</button>
+          </div>
+          <div class="form-msg" id="auditMsg" role="status"></div>
+          <div id="auditList"></div>
+          <div class="table-empty" id="auditEmpty" hidden>暂无变更记录。新增、修改或删除词条/句型后会出现在这里，管理员可以回退。</div>
         </div>
         <p class="manage-note">导入规则：CSV 按「日本語」列追加新词条（相同 日本語 + 中文 自动跳过）；JSON 备份按 id / base_id 合并（覆盖同 id 词条、追加新词条），不会删除现有词条。云端词库不提供一键重置，请保留导出备份。</p>
       </div>
