@@ -1,4 +1,4 @@
-﻿/* ============================================================
+/* ============================================================
    术语词典 · Beta — application
    Vanilla JS, no dependencies. Data is embedded by tools/build.py.
    ============================================================ */
@@ -1120,6 +1120,63 @@
     return "修改";
   }
 
+  var AUDIT_LABELS = {
+    ja: "日本語", reading: "読み方", zh: "中文", en: "English", cats: "领域",
+    note: "注释", etym: "词源", variant: "写法变形", abbr: "全称/简称", syn: "同义词",
+    sort: "排序",
+  };
+
+  function auditFieldValue(value) {
+    if (Array.isArray(value)) return value.join("; ");
+    if (value === null || value === undefined) return "";
+    return String(value);
+  }
+
+  function auditEmptyValue(value) {
+    var v = auditFieldValue(value);
+    return v === "" ? "（空）" : v;
+  }
+
+  function auditFieldNames(table) {
+    return table === "patterns"
+      ? ["ja", "zh", "sort"]
+      : ["ja", "reading", "zh", "en", "cats", "note", "etym", "variant", "abbr", "syn"];
+  }
+
+  function auditDetailHTML(log) {
+    var table = log.table_name;
+    var before = log.before || {};
+    var after = log.after || {};
+    var action = log.action || "update";
+    var names = auditFieldNames(table).filter(function (name) { return AUDIT_LABELS[name]; });
+
+    if (action === "update") {
+      var changed = names.filter(function (name) {
+        return JSON.stringify(before[name]) !== JSON.stringify(after[name]);
+      });
+      if (!changed.length) return "";
+      return '<div class="audit-content"><span class="audit-content-label">修改内容</span>' +
+        '<div class="audit-diff">' + changed.map(function (name) {
+          return '<div class="audit-diff-row"><span class="audit-field">' + esc(AUDIT_LABELS[name]) + "</span>" +
+            '<span class="audit-old">' + esc(auditEmptyValue(before[name])) + "</span>" +
+            '<span class="audit-arrow">→</span>' +
+            '<span class="audit-new">' + esc(auditEmptyValue(after[name])) + "</span></div>";
+        }).join("") + "</div></div>";
+    }
+
+    var row = action === "delete" ? before : after;
+    var fields = names.filter(function (name) {
+      var value = auditFieldValue(row[name]);
+      return value !== "";
+    });
+    if (!fields.length) return "";
+    return '<div class="audit-content"><span class="audit-content-label">' +
+      (action === "delete" ? "删除内容" : "新增内容") + "</span>" +
+      '<dl class="audit-fields">' + fields.map(function (name) {
+        return "<div><dt>" + esc(AUDIT_LABELS[name]) + "</dt><dd>" + esc(auditFieldValue(row[name])) + "</dd></div>";
+      }).join("") + "</dl></div>";
+  }
+
   async function renderData() {
     var c = DATA.counts();
     if (el.resetDataBtn) el.resetDataBtn.hidden = !DATA.canReset;
@@ -1154,6 +1211,7 @@
             ? '<span class="muted" style="font-size:12px">已回退</span>'
             : '<button class="btn ghost small" type="button" data-audit-rollback="' + log.id + '">回退</button>') +
         '</div>' +
+        auditDetailHTML(log) +
       '</div>';
     }).join("");
   }

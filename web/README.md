@@ -60,7 +60,7 @@ npm run build        # 输出到 web/dist/
 | 反馈 | 一般用户在词条详情页提交；管理员在「反馈收集」页标记已读 / 删除 |
 | 词库管理页 | 仅管理员可见 |
 | 用户管理 | 调 Edge Function `admin-users`（仅 admin） |
-| 变更记录 | 词条/句型的新增、修改、删除自动写入 `audit_log`；管理员可在「词库管理」回退 |
+| 变更记录 | 词条/句型的新增、修改、删除自动写入 `audit_log`；显示新增/删除内容与修改前后字段，管理员可回退 |
 | 词条分类 | 不再区分「自定义 / 基础」，新增词条直接进入同一词库 |
 | 修改密码 | 已登录用户通过 Supabase Auth 直接设置新密码（无需旧密码，至少 6 位） |
 | 导出 | 从内存生成 CSV/JSON（与旧版格式兼容） |
@@ -79,6 +79,7 @@ npm run build        # 输出到 web/dist/
   ```
   然后在 `supabase/config.toml` 的 functions 配置中仍保持 `verify_jwt = false`（函数内部自己校验 JWT）。
 - 如需把用户名登录改成邮箱登录，只需调整 `web/src/main.js` 里的 email 映射和 UI 文案。
+
 
 
 
