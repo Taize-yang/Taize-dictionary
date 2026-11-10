@@ -1,0 +1,14 @@
+{
+  "name": "ri-han-dict",
+  "version": "0.3.0",
+  "private": true,
+  "description": "日汉术语词典（静态前端 + Supabase 数据/鉴权）",
+  "scripts": {
+    "supabase:setup": "python tools/setup_supabase.py",
+    "seed": "python tools/seed_terms.py",
+    "verify": "python tools/verify_supabase.py"
+  },
+  "devDependencies": {
+    "supabase": "^3.1.0"
+  }
+}

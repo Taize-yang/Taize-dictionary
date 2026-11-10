@@ -1,0 +1,299 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="日汉术语词典 Alpha — 汽车 / 工业 / 日语专业词汇在线查询，共 9,058 词条（日语为主、中文释义、英文对照）。">
+<meta name="color-scheme" content="light dark">
+<title>日汉术语词典 · Alpha</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23b13a22'/%3E%3Ctext x='32' y='45' font-size='40' text-anchor='middle' fill='%23fff9f2' font-family='serif'%3E%E8%BE%9E%3C/text%3E%3C/svg%3E">
+<script>
+/* Apply the saved / requested theme before first paint to avoid a light flash. */
+(function () {
+  try {
+    var p = new URLSearchParams(location.search).get("theme");
+    var saved = null;
+    try { saved = JSON.parse(localStorage.getItem("dict.theme")); } catch (e) {}
+    var t = (p === "dark" || p === "light") ? p
+      : (saved === "dark" || saved === "light") ? saved
+      : (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+    document.documentElement.setAttribute("data-theme", t);
+  } catch (e) {}
+})();
+</script>
+</head>
+<body>
+
+<!-- ============ login gate ============ -->
+<div class="auth-gate" id="authGate">
+  <div class="auth-card">
+    <div class="auth-brand">
+      <div class="mark" aria-hidden="true">辞</div>
+      <div>
+        <h1>日汉术语词典</h1>
+        <p>日本語 · 中文 · 术语 <span class="alpha">ALPHA</span></p>
+      </div>
+    </div>
+    <p class="auth-lead">词库需要登录后才能访问。</p>
+    <form class="auth-form" id="loginForm" autocomplete="on">
+      <label>用户名
+        <input id="loginUser" name="username" type="text" autocomplete="username" autocapitalize="off" spellcheck="false" required>
+      </label>
+      <label>密码
+        <input id="loginPass" name="password" type="password" autocomplete="current-password" required>
+      </label>
+      <p class="auth-error" id="loginError" role="alert" hidden></p>
+      <button class="btn primary auth-submit" type="submit">登 录</button>
+    </form>
+    <p class="auth-hint">请使用管理员分配的账号登录；管理员登录后可在「用户管理」中新增一般用户。</p>
+  </div>
+</div>
+
+<a class="sr-only" href="#list">跳到词条列表</a>
+
+<header class="app-header" id="appHeader" hidden>
+  <div class="brand">
+    <div class="mark" aria-hidden="true">辞</div>
+    <div class="brand-text">
+      <h1>日汉术语词典</h1>
+      <p>日本語 · 中文 · 术语 <span class="alpha">ALPHA</span></p>
+    </div>
+  </div>
+
+  <div class="search-wrap" role="search">
+    <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+      <circle cx="10.5" cy="10.5" r="6.5"></circle><path d="M15.5 15.5L21 21"></path>
+    </svg>
+    <input id="searchInput" type="search" autocomplete="off" spellcheck="false"
+           placeholder="搜索 日本語 / かな / 中文 / 英文" aria-label="搜索词条">
+    <button class="search-clear" id="searchClear" type="button" aria-label="清除搜索" hidden>✕</button>
+    <kbd class="kbd" aria-hidden="true">/</kbd>
+  </div>
+
+  <div class="header-actions">
+    <button class="icon-btn only-mobile" id="railToggle" type="button" aria-label="打开导航与筛选" aria-expanded="false">☰</button>
+    <div class="user-chip" id="userChip" title="当前登录用户">
+      <span class="user-avatar" id="userAvatar" aria-hidden="true">T</span>
+      <span class="user-name" id="userName">—</span>
+      <span class="role-badge" id="userRole">一般</span>
+    </div>
+    <button class="icon-btn" id="logoutBtn" type="button" aria-label="退出登录" title="退出登录">⏏</button>
+    <button class="icon-btn" id="themeToggle" type="button" aria-label="切换深浅色主题" title="切换深浅色主题">◐</button>
+  </div>
+</header>
+
+<div class="app-body" id="appRoot" hidden>
+  <aside class="rail" id="rail" aria-label="导航与筛选">
+    <div class="rail-group">
+      <div class="rail-label">浏览</div>
+      <nav class="nav" id="nav">
+        <button class="nav-item is-active" type="button" data-view="all">所有词条 <span class="nav-count" id="navAllCount">9,058</span></button>
+        <button class="nav-item" type="button" data-view="fav">我的收藏 <span class="nav-count" id="navFavCount">0</span></button>
+        <button class="nav-item" type="button" data-view="patterns">商务句型 <span class="nav-count" id="navPatternCount">32</span></button>
+        <button class="nav-item" type="button" data-view="stats">数据统计</button>
+      </nav>
+    </div>
+
+    <div class="rail-group">
+      <div class="rail-label">管理</div>
+      <nav class="nav" id="navManage">
+        <button class="nav-item" type="button" data-view="data">词库管理</button>
+        <button class="nav-item" type="button" data-view="users" id="navUsers" hidden>用户管理</button>
+      </nav>
+    </div>
+
+    <div class="rail-group" id="filters">
+      <div class="rail-label">领域 <button class="link-btn" id="catExpand" type="button" aria-expanded="false">展开</button></div>
+      <div class="chips" id="catChips"></div>
+      <button class="btn ghost small" id="filterReset" type="button" hidden style="margin-top:10px">清除全部筛选</button>
+    </div>
+
+    <div class="rail-foot">
+      <p>共 <span id="footTotal">9,058</span> 词条 · <span id="footCats">95</span> 个领域</p>
+      <p>数据源：词汇表-已补充.xlsx</p>
+      <p>构建 <span id="footBuild">—</span></p>
+    </div>
+  </aside>
+
+  <div class="rail-mask" id="railMask" hidden></div>
+  <div class="drawer-inner" id="drawer" aria-label="导航与筛选">
+    <div class="rail-group">
+      <div class="rail-label">浏览</div>
+      <nav class="nav" id="navDrawer">
+        <button class="nav-item is-active" type="button" data-view="all">所有词条</button>
+        <button class="nav-item" type="button" data-view="fav">我的收藏</button>
+        <button class="nav-item" type="button" data-view="patterns">商务句型</button>
+        <button class="nav-item" type="button" data-view="stats">数据统计</button>
+        <button class="nav-item" type="button" data-view="data">词库管理</button>
+        <button class="nav-item" type="button" data-view="users" id="navUsersDrawer" hidden>用户管理</button>
+      </nav>
+    </div>
+    <div class="rail-group">
+      <div class="rail-label">领域 <button class="link-btn" id="catExpandDrawer" type="button" aria-expanded="false">展开</button></div>
+      <div class="chips" id="catChipsDrawer"></div>
+      <button class="btn ghost small" id="filterResetDrawer" type="button" hidden style="margin-top:10px">清除全部筛选</button>
+    </div>
+  </div>
+
+  <main class="board" id="board">
+    <!-- ============ list view (all + favorites) ============ -->
+    <section class="view" id="viewList" aria-label="词条列表">
+      <div class="list-toolbar">
+        <div class="result-line">
+          <span class="result-count" id="resultCount">9,058</span>
+          <span class="result-unit" id="resultUnit">词条</span>
+          <span class="result-sep" id="resultSep" hidden aria-hidden="true"></span>
+          <span class="filter-summary" id="filterSummary"></span>
+        </div>
+        <div class="toolbar-actions">
+          <button class="btn ghost small" id="addEntryBtn" type="button" title="新增词条">＋ 新增</button>
+          <label class="sr-only" for="sortSelect">排序方式</label>
+          <select class="select" id="sortSelect">
+            <option value="kana">五十音顺 あ→わ</option>
+            <option value="kana-desc">五十音顺 わ→あ</option>
+            <option value="en">英文 A→Z</option>
+          </select>
+          <button class="btn ghost small" id="randomBtn" type="button" title="随机抽一个词（快捷键 R）">随机</button>
+        </div>
+      </div>
+      <div class="letter-bar" id="letterBar" aria-label="五十音索引"></div>
+      <div class="list-wrap">
+        <div class="list" id="list" role="listbox" aria-label="词条" tabindex="-1">
+          <div class="list-inner" id="listInner"></div>
+        </div>
+        <div class="empty" id="listEmpty" hidden>
+          <div class="empty-mark" aria-hidden="true">無</div>
+          <h3 id="emptyTitle">没有找到匹配的词条</h3>
+          <p id="emptyText">试试更短的关键词，或换一种语言（日本語 / かな / 中文 / 英文）。</p>
+          <div class="chips" id="emptyChips"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ patterns view ============ -->
+    <section class="view" id="viewPatterns" hidden aria-label="商务句型">
+      <div class="patterns-head">
+        <h2>商务句型</h2>
+        <p id="patternSub">邮件与交涉中常用的日语句型，共 32 条 · 点击右上角复制</p>
+      </div>
+      <div class="pattern-list" id="patternList"></div>
+      <div class="empty" id="patternEmpty" hidden>
+        <div class="empty-mark" aria-hidden="true">無</div>
+        <h3>没有匹配的句型</h3>
+        <p>换一个关键词试试，例如「発注」「入札」「見積」。</p>
+      </div>
+    </section>
+
+    <!-- ============ stats view ============ -->
+    <section class="view" id="viewStats" hidden aria-label="数据统计">
+      <div class="stats-scroll" id="statsScroll"></div>
+    </section>
+
+    <!-- ============ library management view ============ -->
+    <section class="view" id="viewData" hidden aria-label="词库管理">
+      <div class="manage-scroll">
+        <div class="manage-head">
+          <h2>词库管理</h2>
+          <p>新增、修改、删除词条，或导入 / 导出整个词库。所有改动保存在本机浏览器，可随时导出备份。</p>
+        </div>
+        <div class="manage-cards" id="dataCards"></div>
+        <div class="manage-actions">
+          <button class="btn" id="exportCsvBtn" type="button">导出 CSV</button>
+          <button class="btn" id="exportJsonBtn" type="button">导出 JSON 备份</button>
+          <button class="btn primary" id="importBtn" type="button">导入词库…</button>
+          <input id="importFile" type="file" accept=".csv,.json,text/csv,application/json" hidden>
+          <button class="btn danger" id="resetDataBtn" type="button">恢复初始词库</button>
+        </div>
+        <div class="manage-section">
+          <h3 class="section-label">自定义词条 <span class="muted" id="customCount"></span></h3>
+          <div id="customList"></div>
+        </div>
+        <p class="manage-note">导入规则：CSV 按「日本語」列追加新词条（相同 日本語 + 中文 自动跳过）；JSON 备份按 id / base_id 合并（覆盖同 id 词条、追加新词条），不会删除现有词条。云端词库不提供一键重置，请保留导出备份。</p>
+      </div>
+    </section>
+
+    <!-- ============ admin: user management ============ -->
+    <section class="view" id="viewUsers" hidden aria-label="用户管理">
+      <div class="manage-scroll">
+        <div class="manage-head">
+          <h2>用户管理</h2>
+          <p>仅管理员可见。管理员可以新增或删除「一般用户」账户；管理员账户不可删除。</p>
+        </div>
+        <form class="user-add-form" id="addUserForm">
+          <label>用户名
+            <input id="newUserName" type="text" autocomplete="off" placeholder="2–20 位字母/数字/_-" required>
+          </label>
+          <label>初始密码
+            <input id="newUserPass" type="password" autocomplete="new-password" placeholder="至少 6 位" required>
+          </label>
+          <button class="btn primary" type="submit">新增一般用户</button>
+          <span class="form-msg" id="addUserMsg" role="status"></span>
+        </form>
+        <div class="manage-section">
+          <h3 class="section-label">账户列表</h3>
+          <div id="userList"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <aside class="detail" id="detail" aria-label="词条详情">
+    <button class="icon-btn detail-close" id="detailClose" type="button" aria-label="关闭详情">✕</button>
+    <div class="detail-empty" id="detailEmpty">
+      <div class="glyph" aria-hidden="true">辞</div>
+      <h2>查一个词</h2>
+      <p>以日语词为主、中文释义，英文作为对照。支持日本語、かな（假名）与中文检索；可叠加领域筛选。选中词条后，这里会显示完整释义与注释。</p>
+      <ul class="shortcut-list">
+        <li><kbd>/</kbd> 聚焦搜索框</li>
+        <li><kbd>↑</kbd><kbd>↓</kbd> 切换词条</li>
+        <li><kbd>F</kbd> 收藏 · <kbd>C</kbd> 复制 · <kbd>R</kbd> 随机</li>
+        <li><kbd>Esc</kbd> 清除搜索 / 关闭详情</li>
+      </ul>
+      <div class="recent-block" id="recentBlock" hidden>
+        <div class="rail-label">最近查看</div>
+        <div class="recent-list" id="recentList"></div>
+      </div>
+    </div>
+    <article class="detail-body" id="detailBody" hidden></article>
+  </aside>
+</div>
+
+<!-- ============ entry editor modal ============ -->
+<div class="modal" id="entryModal" hidden>
+  <div class="modal-backdrop" data-close-modal="1"></div>
+  <form class="modal-card entry-form" id="entryForm" role="dialog" aria-modal="true" aria-labelledby="entryModalTitle">
+    <header class="modal-head">
+      <h2 id="entryModalTitle">新增词条</h2>
+      <button class="icon-btn" type="button" data-close-modal aria-label="关闭">✕</button>
+    </header>
+    <div class="form-grid">
+      <label class="full">日本語 <span class="req">*</span><input name="ja" maxlength="60" required></label>
+      <label>読み方<input name="reading" maxlength="80"></label>
+      <label>中文释义<input name="zh" maxlength="120"></label>
+      <label>英文对照<input name="en" maxlength="120"></label>
+      <label>领域（多个用 ; 分隔）<input name="cats" maxlength="120"></label>
+      <label>別表記<input name="variant" maxlength="120"></label>
+      <label>全称 / 简称<input name="abbr" maxlength="120"></label>
+      <label>同义词 / 近义词<input name="syn" maxlength="120"></label>
+      <label>词源<input name="etym" maxlength="200"></label>
+      <label>参考图编号<input name="img" maxlength="20"></label>
+      <label class="full">注释<textarea name="note" rows="4" maxlength="1000"></textarea></label>
+    </div>
+    <footer class="modal-foot">
+      <span class="form-hint" id="entryFormHint"></span>
+      <span class="modal-spacer"></span>
+      <button class="btn" type="button" data-close-modal>取消</button>
+      <button class="btn primary" type="submit">保存</button>
+    </footer>
+  </form>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<pre id="selftest-output" hidden></pre>
+
+<script type="module" src="/src/main.js"></script>
+</body>
+</html>
+
+
+

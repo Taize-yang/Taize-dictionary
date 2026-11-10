@@ -1,0 +1,17 @@
+node_modules/
+.supabase-home/
+.env
+.env.local
+.env.*.local
+supabase/.temp/
+supabase/.branches/
+dist/
+*.log
+accounts.local.txt
+*.local.txt
+web/.env.local
+web/node_modules/
+web/dist/
+web/artifacts/
+tools/*.log
+accounts.local.txt
