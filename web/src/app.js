@@ -1,4 +1,4 @@
-/* ============================================================
+﻿/* ============================================================
    术语词典 · Beta — application
    Vanilla JS, no dependencies. Data is embedded by tools/build.py.
    ============================================================ */
@@ -717,7 +717,7 @@
 
     var grid = "";
     grid += detailRow("词源", e.etym);
-    grid += detailRow("別表記", e.variant, "写法变形");
+    grid += detailRow("写法变形", e.variant);
     grid += detailRow("全称 / 简称", e.abbr);
     grid += detailRow("同义词 / 近义词", e.syn);
 
@@ -868,7 +868,7 @@
     if (e.en) lines.push(e.en);
     if (e.cats.length) lines.push("领域：" + e.cats.join(" / "));
     if (e.etym) lines.push("词源：" + e.etym);
-    if (e.variant) lines.push("別表記：" + e.variant);
+    if (e.variant) lines.push("写法变形：" + e.variant);
     if (e.abbr) lines.push("全称/简称：" + e.abbr);
     if (e.syn) lines.push("近义词：" + e.syn);
     if (e.note) lines.push("注释：" + e.note);
@@ -2040,5 +2040,6 @@
   if (AUTH.current()) startApp();
   else showAuthGate();
 })();
+
 
 

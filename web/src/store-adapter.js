@@ -1,4 +1,4 @@
-import { supabase } from "./supabase.js";
+﻿import { supabase } from "./supabase.js";
 
 const FIELDS = ["en", "ja", "reading", "zh", "cats", "freq", "note", "etym", "variant", "abbr", "syn", "owner"];
 const DB_COLUMNS = "id,base_id,ja,reading,zh,en,cats,note,etym,variant,abbr,syn,deleted,created_by,updated_by,created_at,updated_at";
@@ -274,7 +274,7 @@ export class StoreAdapter {
     const columns = [
       ["id", "ID"], ["ja", "日本語"], ["reading", "読み方"], ["zh", "中文"],
       ["en", "English"], ["cats", "领域"], ["note", "注释"], ["etym", "词源"],
-      ["variant", "別表記"], ["abbr", "全称/简称"], ["syn", "同义词/近义词"],
+      ["variant", "写法变形"], ["abbr", "全称/简称"], ["syn", "同义词/近义词"],
     ];
     const lines = [csvRow(columns.map((c) => c[1]))];
     this.merged().forEach((row) => {
@@ -391,4 +391,5 @@ export async function fetchPatterns() {
   if (error) throw new Error(error.message);
   return data || [];
 }
+
 
