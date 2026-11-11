@@ -381,7 +381,40 @@ html[data-theme="dark"] .mark img.logo-dark { display: block; }
 /* ============================================================
    Board & list
    ============================================================ */
-.board { min-width: 0; min-height: 0; display: flex; flex-direction: column; }
+.board { position: relative; min-width: 0; min-height: 0; display: flex; flex-direction: column; }
+body.is-booting .header-actions { visibility: hidden; }
+body.guest-booting #navFav,
+body.guest-booting #navFavDrawer,
+body.guest-booting #navData,
+body.guest-booting #navDataDrawer,
+body.guest-booting #navUsers,
+body.guest-booting #navUsersDrawer,
+body.guest-booting #navFeedback,
+body.guest-booting #navFeedbackDrawer,
+body.guest-booting #manageGroup,
+body.guest-booting #addEntryBtn,
+body.guest-booting #addPatternBtn { display: none !important; }
+.boot-splash {
+  position: absolute; inset: 0; z-index: 40;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;
+  background: var(--bg);
+  color: var(--ink-2);
+}
+.boot-splash[hidden] { display: none; }
+.boot-logo { width: 58px; height: 58px; display: grid; place-items: center; }
+.boot-logo img { width: 100%; height: 100%; object-fit: contain; display: block; }
+.boot-logo img.logo-dark { display: none; }
+html[data-theme="dark"] .boot-logo img.logo-light { display: none; }
+html[data-theme="dark"] .boot-logo img.logo-dark { display: block; }
+.boot-title { margin: 0; font-size: 14px; letter-spacing: .06em; color: var(--muted); }
+.boot-spinner {
+  width: 22px; height: 22px; display: block;
+  border: 2px solid var(--line-strong);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: boot-spin .8s linear infinite;
+}
+@keyframes boot-spin { to { transform: rotate(360deg); } }
 .view { position: relative; display: flex; flex-direction: column; min-height: 0; flex: 1 1 auto; }
 .list-toolbar {
   flex: none;

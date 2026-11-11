@@ -1,7 +1,7 @@
 import "./styles.css";
 import { supabase } from "./supabase.js";
 import { authAdapter, setSessionUser, setGuestUser } from "./auth-adapter.js";
-import { StoreAdapter, fetchAllTerms, fetchPatterns } from "./store-adapter.js";
+import { StoreAdapter, fetchDictionary } from "./store-adapter.js";
 
 const FIELDS = ["en", "ja", "reading", "zh", "cats", "freq", "note", "etym", "variant", "abbr", "syn", "owner"];
 const BUILD_DATE = typeof __BUILD_DATE__ !== "undefined" ? __BUILD_DATE__ : new Date().toISOString();
@@ -17,6 +17,8 @@ const loginUser = document.getElementById("loginUser");
 const loginPass = document.getElementById("loginPass");
 const loginError = document.getElementById("loginError");
 const lead = document.querySelector(".auth-lead");
+const bootSplash = document.getElementById("bootSplash");
+const bootText = document.getElementById("bootText");
 
 let booting = false;
 
@@ -27,12 +29,14 @@ function setError(message) {
 
 function setLoading(message) {
   if (lead) lead.textContent = message;
+  if (bootText) bootText.textContent = message;
 }
 
 async function loadPayload(guestMode) {
   setLoading("正在加载词库…");
-  const terms = await fetchAllTerms();
-  const patterns = await fetchPatterns();
+  const dictionary = await fetchDictionary();
+  const terms = dictionary.terms;
+  const patterns = dictionary.patterns;
   const store = new StoreAdapter(terms, patterns);
   if (guestMode) {
     store.setFavorites([]);
@@ -80,9 +84,15 @@ async function bootApp(user, guestMode) {
     // app.js is imported only after the session/guest state and dictionary are ready.
     await import("./app.js");
     if (gate) gate.hidden = true;
+    if (bootSplash) bootSplash.hidden = true;
+    document.body.classList.remove("is-booting");
+    document.body.classList.remove("guest-booting");
     booting = false;
   } catch (error) {
     console.error(error);
+    if (bootSplash) bootSplash.hidden = true;
+    document.body.classList.remove("is-booting");
+    if (gate) gate.hidden = false;
     setError("词库加载失败：" + (error && error.message ? error.message : "网络或权限错误"));
     setLoading(guestMode ? "访客模式加载失败，请登录后重试。" : "词库需要登录后才能访问。");
     if (!guestMode) {
@@ -102,6 +112,7 @@ async function enterGuest() {
 
 async function boot() {
   const { data: { session } } = await supabase.auth.getSession();
+  document.body.classList.toggle("guest-booting", !session);
   if (!session) {
     await enterGuest();
     return;
@@ -148,6 +159,9 @@ loginForm.addEventListener("submit", async (event) => {
 
 boot().catch((error) => {
   console.error(error);
+  if (bootSplash) bootSplash.hidden = true;
+  document.body.classList.remove("is-booting");
+  if (gate) gate.hidden = false;
   setError("初始化失败：" + (error && error.message ? error.message : "未知错误"));
 });
 

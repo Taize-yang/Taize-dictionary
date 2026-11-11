@@ -178,8 +178,9 @@ export class StoreAdapter {
   }
 
   async reloadAll() {
-    this.raw = await fetchAllTerms();
-    this.patterns = await fetchPatterns();
+    const dictionary = await fetchDictionary();
+    this.raw = dictionary.terms;
+    this.patterns = dictionary.patterns;
     await this.loadFavorites();
     return this.raw;
   }
@@ -430,23 +431,18 @@ export class StoreAdapter {
   }
 }
 
+export async function fetchDictionary() {
+  const { data, error } = await supabase.rpc("get_dictionary");
+  if (error) throw new Error(error.message);
+  return {
+    terms: (data && data.terms) || [],
+    patterns: (data && data.patterns) || [],
+  };
+}
+
 export async function fetchAllTerms() {
-  const pageSize = 1000;
-  let from = 0;
-  const all = [];
-  while (true) {
-    const { data, error } = await supabase
-      .from("terms")
-      .select(DB_COLUMNS)
-      .eq("deleted", false)
-      .order("id")
-      .range(from, from + pageSize - 1);
-    if (error) throw new Error(error.message);
-    all.push(...(data || []));
-    if (!data || data.length < pageSize) break;
-    from += pageSize;
-  }
-  return all;
+  const dictionary = await fetchDictionary();
+  return dictionary.terms;
 }
 
 export async function fetchPatterns() {
@@ -454,5 +450,6 @@ export async function fetchPatterns() {
   if (error) throw new Error(error.message);
   return data || [];
 }
+
 
 
