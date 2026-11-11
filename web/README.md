@@ -27,6 +27,11 @@ VITE_USER_EMAIL_DOMAIN=dict.local
 
 登录后点右上角钥匙图标可修改自己的密码（无需输入旧密码）。浅色/深色主题分别使用 `web/public/logo-light.png` 与 `logo-dark.png`。
 
+## iPhone / iPad 添加到主屏幕
+
+- 网站已配置 `apple-touch-icon`（120/152/167/180）与 `manifest.json`
+- 在 Safari 分享 →「添加到主屏幕」会显示泰泽 LOGO（红底白色），不会再用标题首字
+
 ## 构建
 
 ```powershell
@@ -79,6 +84,7 @@ npm run build        # 输出到 web/dist/
   ```
   然后在 `supabase/config.toml` 的 functions 配置中仍保持 `verify_jwt = false`（函数内部自己校验 JWT）。
 - 如需把用户名登录改成邮箱登录，只需调整 `web/src/main.js` 里的 email 映射和 UI 文案。
+
 
 
 
