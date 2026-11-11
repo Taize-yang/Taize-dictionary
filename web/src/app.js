@@ -293,6 +293,10 @@
     userAvatar: $("#userAvatar"),
     userName: $("#userName"),
     userRole: $("#userRole"),
+    loginBtn: $("#loginBtn"),
+    guestBackBtn: $("#guestBackBtn"),
+    navFav: $("#navFav"),
+    navFavDrawer: $("#navFavDrawer"),
     logoutBtn: $("#logoutBtn"),
     changePassBtn: $("#changePassBtn"),
     passwordModal: $("#passwordModal"),
@@ -471,6 +475,7 @@
   function rowHTML(e, tokens) {
     var cats = e.cats.slice(0, 3).join(" · ");
     if (e.cats.length > 3) cats += " +" + (e.cats.length - 3);
+    var guest = AUTH.isGuest();
     var starred = state.favs.has(e.id);
     var bulk = state.bulkMode;
     var checked = bulk && state.bulkSelected.has(e.id);
@@ -489,9 +494,9 @@
           (cats ? '<span class="term-cats">' + esc(cats) + "</span>" : "") +
         "</div>" +
       "</div>" +
-      '<div class="row-side"><button class="star' + (starred ? " is-on" : "") + '" type="button" data-star="' +
+      (guest ? "" : '<div class="row-side"><button class="star' + (starred ? " is-on" : "") + '" type="button" data-star="' +
         e.id + '" aria-label="' + (starred ? "取消收藏" : "收藏") + '" title="收藏（F）">' + (starred ? "★" : "☆") +
-      "</button></div>" +
+      "</button></div>") +
     "</div>";
   }
 
@@ -748,6 +753,7 @@
 
     var starred = state.favs.has(e.id);
     var canDelete = AUTH.isAdmin();
+    var guest = AUTH.isGuest();
     var html =
       '<div class="detail-eyebrow">' + catsHtml + "</div>" +
       '<h2 class="detail-ja">' + highlight(e.ja, tokens) + "</h2>" +
@@ -756,13 +762,13 @@
       (e.en ? '<div class="detail-en">' + highlight(e.en, tokens) + "</div>" : "") +
       '<div class="detail-actions">' +
         '<button class="btn primary" type="button" data-copy="' + e.id + '">复制</button>' +
-        '<button class="btn' + (starred ? " is-on" : "") + '" type="button" data-fav="' + e.id + '">' +
-          (starred ? "★ 已收藏" : "☆ 收藏") + "</button>" +
+        (guest ? "" :
+          '<button class="btn' + (starred ? " is-on" : "") + '" type="button" data-fav="' + e.id + '">' +
+            (starred ? "★ 已收藏" : "☆ 收藏") + "</button>" +
+          '<button class="btn" type="button" data-edit="' + e.id + '">编辑</button>') +
         (canDelete
-          ? '<button class="btn" type="button" data-edit="' + e.id + '">编辑</button>' +
-            '<button class="btn danger" type="button" data-delete="' + e.id + '">删除</button>'
-          : '<button class="btn" type="button" data-edit="' + e.id + '">编辑</button>' +
-            '<button class="btn" type="button" data-feedback="' + e.id + '">反馈</button>') +
+          ? '<button class="btn danger" type="button" data-delete="' + e.id + '">删除</button>'
+          : (guest ? "" : '<button class="btn" type="button" data-feedback="' + e.id + '">反馈</button>')) +
       "</div>" +
       (grid ? '<dl class="detail-grid">' + grid + "</dl>" : "") +
       '<section class="detail-note"><h3 class="section-label">注释</h3>' +
@@ -844,6 +850,7 @@
 
   /* ---------------- favorites ---------------- */
   function toggleFav(id, silent) {
+    if (AUTH.isGuest()) { toast("请先登录后再收藏"); return false; }
     var on = state.favs.has(id);
     var prevOrder = state.favOrder.slice();
     if (on) {
@@ -936,7 +943,7 @@
         '<span class="pattern-no">NO. ' + pad2(p.id) + "</span>" +
         '<div class="pattern-ja">' + highlight(p.ja, tokens) + "</div>" +
         '<div class="pattern-zh">' + highlight(p.zh, tokens) + "</div>" +
-        '<button class="pattern-edit" type="button" data-edit-pattern="' + p.id + '" title="编辑句型">编辑</button>' +
+        (AUTH.isGuest() ? "" : '<button class="pattern-edit" type="button" data-edit-pattern="' + p.id + '" title="编辑句型">编辑</button>') +
         '<button class="pattern-copy" type="button" data-copy-pattern="' + p.id + '" aria-label="复制句型" title="复制">⧉</button>' +
       "</article>";
     }).join("");
@@ -962,6 +969,7 @@
   }
 
   function openPatternForm(id) {
+    if (AUTH.isGuest()) { toast("请先登录"); return; }
     var patterns = DATA.patternList ? DATA.patternList() : (META.patterns || []);
     var p = id ? patterns.filter(function (x) { return x.id === Number(id); })[0] : null;
     state.editingPatternId = p ? p.id : null;
@@ -1380,6 +1388,10 @@
 
   function setView(view, opts) {
     opts = opts || {};
+    if (AUTH.isGuest() && view === "fav") {
+      view = "all";
+      toast("登录后可查看收藏");
+    }
     if ((view === "users" || view === "data" || view === "feedback") && !AUTH.isAdmin()) {
       view = "all";
       toast("仅管理员可访问该页面");
@@ -1614,6 +1626,8 @@
      In Supabase mode the login form is owned by src/main.js (it must fetch the
      dictionary before importing this UI module), so we only wire the logout. */
   el.logoutBtn.addEventListener("click", doLogout);
+  el.loginBtn.addEventListener("click", openLoginGate);
+  el.guestBackBtn.addEventListener("click", closeLoginGate);
   el.changePassBtn.addEventListener("click", openPasswordModal);
   $$("[data-close-password]").forEach(function (b) {
     b.addEventListener("click", function (ev) {
@@ -1713,6 +1727,7 @@
     var typing = target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" ||
       target.tagName === "SELECT" || target.isContentEditable);
     if (ev.key === "Escape") {
+      if (!el.authGate.hidden && AUTH.isGuest()) { closeLoginGate(); return; }
       if (!el.feedbackModal.hidden) { closeFeedbackForm(); return; }
       if (!el.patternModal.hidden) { closePatternForm(); return; }
       if (!el.passwordModal.hidden) { closePasswordModal(); return; }
@@ -1827,6 +1842,7 @@
   }
 
   function openEntryForm(id) {
+    if (AUTH.isGuest()) { toast("请先登录"); return; }
     var e = id ? byId.get(Number(id)) : null;
     state.editingId = e ? e.id : null;
     el.entryModalTitle.textContent = e ? "编辑词条" : "新增词条";
@@ -1976,9 +1992,17 @@
   function setUserChrome() {
     var u = AUTH.current();
     if (!u) return;
+    var guest = AUTH.isGuest();
+    var admin = u.role === "admin";
+    el.userChip.hidden = guest;
+    el.loginBtn.hidden = !guest;
+    el.logoutBtn.hidden = guest;
+    el.changePassBtn.hidden = guest;
+    [el.navFav, el.navFavDrawer].forEach(function (b) { if (b) b.hidden = guest; });
+    el.addEntryBtn.hidden = guest;
+    el.addPatternBtn.hidden = guest;
     el.userName.textContent = u.u;
     el.userAvatar.textContent = (u.u.charAt(0) || "U").toUpperCase();
-    var admin = u.role === "admin";
     el.userRole.textContent = admin ? "管理员" : "一般";
     el.userRole.className = "role-badge" + (admin ? " is-admin" : "");
     [el.navUsers, el.navUsersDrawer].forEach(function (b) { if (b) b.hidden = !admin; });
@@ -1987,6 +2011,18 @@
     if (el.manageGroup) el.manageGroup.hidden = !admin;
     updateBulkUI();
     if (admin) refreshFeedbackBadge();
+  }
+
+  function openLoginGate() {
+    el.authGate.hidden = false;
+    el.guestBackBtn.hidden = false;
+    el.loginError.hidden = true;
+    setTimeout(function () { el.loginUser.focus(); }, 50);
+  }
+
+  function closeLoginGate() {
+    if (!AUTH.isGuest()) return;
+    el.authGate.hidden = true;
   }
 
   async function handleAddUser(ev) {

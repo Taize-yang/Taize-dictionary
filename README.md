@@ -1,7 +1,7 @@
 ﻿# 日汉术语词典 · Beta（Vite + Supabase）
 
 基于《词汇表-已补充.xlsx》的日汉术语词典在线版本：**日语为主、中文释义、英文对照**。
-前端是纯静态 Vite 应用（可部署 GitHub Pages），登录、词库、权限全部由 Supabase 提供；未登录拿不到任何词条。
+前端是纯静态 Vite 应用（可部署 GitHub Pages），登录、词库、权限全部由 Supabase 提供；未登录访客可只读浏览，收藏 / 新增 / 编辑需要登录，删除仅管理员。
 
 **线上地址：<https://taize-yang.github.io/Taize-dictionary/>**
 
@@ -10,7 +10,8 @@
 
 ## 功能
 
-- 登录门禁（Supabase Auth，用户名登录）
+- 未登录自动进入只读「访客」模式（右上角显示登录按钮）
+- 登录（Supabase Auth，用户名登录）
 - 9,058 条日文词条 + 32 条商务句型
 - 日语/假名/中文/英文检索、五十音索引、领域筛选
 - 词条新增 / 编辑（所有登录用户；写入 Supabase；已移除「参考图编号」字段）；删除仅管理员
@@ -75,6 +76,8 @@ npm run dev        # http://localhost:5173
 - 前端代码公开；**词条数据只在登录后由 Supabase 返回**，匿名 API 返回 401。
 - service_role / 数据库密码 / Personal Access Token 只保存在本机 `.env.local` 或 Supabase 后台，绝不进前端或仓库。
 - 管理员操作（增删用户）只通过 Edge Function 的服务端密钥执行。
+
+
 
 
 

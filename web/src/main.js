@@ -1,6 +1,6 @@
 import "./styles.css";
 import { supabase } from "./supabase.js";
-import { authAdapter, setSessionUser } from "./auth-adapter.js";
+import { authAdapter, setSessionUser, setGuestUser } from "./auth-adapter.js";
 import { StoreAdapter, fetchAllTerms, fetchPatterns } from "./store-adapter.js";
 
 const FIELDS = ["en", "ja", "reading", "zh", "cats", "freq", "note", "etym", "variant", "abbr", "syn", "owner"];
@@ -29,25 +29,29 @@ function setLoading(message) {
   if (lead) lead.textContent = message;
 }
 
-async function loadPayload() {
+async function loadPayload(guestMode) {
   setLoading("正在加载词库…");
   const terms = await fetchAllTerms();
   const patterns = await fetchPatterns();
   const store = new StoreAdapter(terms, patterns);
-  await store.loadFavorites();
-  // One-time migration of favorites that used to live in localStorage.
-  if (!store.favoriteIds.length) {
-    let localFavs = [];
-    try { localFavs = JSON.parse(localStorage.getItem("dict.favs") || "[]"); } catch (e) { localFavs = []; }
-    if (Array.isArray(localFavs) && localFavs.length) {
-      const valid = new Set(terms.map((t) => t.id));
-      for (const id of localFavs) {
-        if (!valid.has(Number(id))) continue;
-        try { await store.setFavorite(id, true); } catch (e) { /* ignore invalid/deleted */ }
+  if (guestMode) {
+    store.setFavorites([]);
+  } else {
+    await store.loadFavorites();
+    // One-time migration of favorites that used to live in localStorage.
+    if (!store.favoriteIds.length) {
+      let localFavs = [];
+      try { localFavs = JSON.parse(localStorage.getItem("dict.favs") || "[]"); } catch (e) { localFavs = []; }
+      if (Array.isArray(localFavs) && localFavs.length) {
+        const valid = new Set(terms.map((t) => t.id));
+        for (const id of localFavs) {
+          if (!valid.has(Number(id))) continue;
+          try { await store.setFavorite(id, true); } catch (e) { /* ignore invalid/deleted */ }
+        }
       }
     }
+    try { localStorage.removeItem("dict.favs"); } catch (e) { /* ignore */ }
   }
-  try { localStorage.removeItem("dict.favs"); } catch (e) { /* ignore */ }
   const rows = store.merged();
   const payload = {
     meta: {
@@ -61,42 +65,51 @@ async function loadPayload() {
   return { payload, store, terms };
 }
 
-async function enterApp(authUser) {
+async function bootApp(user, guestMode) {
   if (booting) return;
   booting = true;
-  loginForm.querySelector("button[type=submit]").disabled = true;
   try {
-    setSessionUser(authUser);
-    const { payload, store } = await loadPayload();
+    if (guestMode) setGuestUser(); else setSessionUser(user);
+    const { payload, store } = await loadPayload(guestMode);
     window.__SUPABASE_MODE__ = true;
+    window.__GUEST_MODE__ = !!guestMode;
     window.__DICT_PAYLOAD__ = payload;
     window.__BUILD__ = BUILD_INFO;
     window.__AUTH__ = authAdapter;
     window.__STORE__ = store;
-    // app.js is only imported after the session + dictionary are ready; it boots
-    // itself (startApp) and hides the login gate.
+    // app.js is imported only after the session/guest state and dictionary are ready.
     await import("./app.js");
     if (gate) gate.hidden = true;
+    booting = false;
   } catch (error) {
     console.error(error);
     setError("词库加载失败：" + (error && error.message ? error.message : "网络或权限错误"));
-    setLoading("词库需要登录后才能访问。");
-    try { await supabase.auth.signOut(); } catch (e) { /* ignore */ }
+    setLoading(guestMode ? "访客模式加载失败，请登录后重试。" : "词库需要登录后才能访问。");
+    if (!guestMode) {
+      try { await supabase.auth.signOut(); } catch (e) { /* ignore */ }
+    }
     booting = false;
-    loginForm.querySelector("button[type=submit]").disabled = false;
   }
+}
+
+async function enterApp(authUser) {
+  await bootApp(authUser, false);
+}
+
+async function enterGuest() {
+  await bootApp(null, true);
 }
 
 async function boot() {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) {
-    setLoading("词库需要登录后才能访问。");
-    setSessionUser(null);
+    await enterGuest();
     return;
   }
   const { data: { user }, error } = await supabase.auth.getUser();
   if (error || !user) {
     try { await supabase.auth.signOut(); } catch (e) { /* ignore */ }
+    await enterGuest();
     return;
   }
   await enterApp(user);
@@ -124,7 +137,8 @@ loginForm.addEventListener("submit", async (event) => {
       return;
     }
     loginPass.value = "";
-    await enterApp(data.user);
+    // Reload so the app re-initializes in authenticated mode (guest mode may already be mounted).
+    window.location.reload();
   } catch (error) {
     setError("登录失败：" + (error && error.message ? error.message : "网络错误"));
   } finally {

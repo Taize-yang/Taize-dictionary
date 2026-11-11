@@ -1,6 +1,7 @@
 import { supabase, SUPABASE_URL, SUPABASE_ANON_KEY, usernameToEmail, emailToUsername } from "./supabase.js";
 
 let cachedUser = null; // { u, role, id }
+let guestMode = false;
 
 function toUser(authUser) {
   if (!authUser) return null;
@@ -12,7 +13,14 @@ function toUser(authUser) {
 }
 
 export function setSessionUser(authUser) {
+  guestMode = false;
   cachedUser = toUser(authUser);
+  return cachedUser;
+}
+
+export function setGuestUser() {
+  guestMode = true;
+  cachedUser = { u: "未登录", role: "guest", id: null };
   return cachedUser;
 }
 
@@ -49,16 +57,21 @@ export const authAdapter = {
   isAdmin() {
     return !!cachedUser && cachedUser.role === "admin";
   },
+  isGuest() {
+    return guestMode;
+  },
   async login(username, password) {
     const { data, error } = await supabase.auth.signInWithPassword({
       email: usernameToEmail(username),
       password,
     });
     if (error) return { ok: false, error: "用户名或密码错误" };
+    guestMode = false;
     cachedUser = toUser(data.user);
     return { ok: true, user: { u: cachedUser.u, role: cachedUser.role } };
   },
   async logout() {
+    guestMode = false;
     cachedUser = null;
     await supabase.auth.signOut();
   },

@@ -2,7 +2,7 @@
 
 线上地址：<https://taize-yang.github.io/Taize-dictionary/>
 
-这是路线 B 的前端：页面本身是纯静态文件，登录后从 Supabase 拉取词库；未登录拿不到任何词条。
+这是路线 B 的前端：页面本身是纯静态文件，从 Supabase 拉取词库。**未登录访客可只读浏览**，登录后可收藏 / 新增 / 编辑词条与句型（删除仍仅管理员）。
 
 ## 本地开发
 
@@ -84,6 +84,7 @@ npm run build        # 输出到 web/dist/
   ```
   然后在 `supabase/config.toml` 的 functions 配置中仍保持 `verify_jwt = false`（函数内部自己校验 JWT）。
 - 如需把用户名登录改成邮箱登录，只需调整 `web/src/main.js` 里的 email 映射和 UI 文案。
+
 
 
 

@@ -20,24 +20,13 @@ def main():
 
     failures = []
 
-    # 1) anonymous SELECT must not return any row
+    # 1) anonymous SELECT: guest mode must be able to read dictionary entries
     status, _, body = request("GET", f"{url}/rest/v1/terms?select=id,ja&limit=3", anon)
-    if status in (401, 403):
-        print(f"PASS  anon 读取被拒绝（HTTP {status}）")
-    elif status == 200:
-        try:
-            rows = body.strip()
-            is_empty = rows in ("[]", "")
-        except Exception:
-            is_empty = False
-        if is_empty:
-            print("PASS  anon 读取返回空（RLS 生效）")
-        else:
-            failures.append(f"anon 读取返回了数据：{body[:200]}")
-            print("FAIL  anon 读取返回了数据（RLS 未生效）")
+    if status in (200, 206) and body.strip() not in ("[]", ""):
+        print("PASS  anon 可读取词条（访客模式）")
     else:
-        failures.append(f"anon 读取异常 HTTP {status}: {body[:200]}")
-        print(f"FAIL  anon 读取异常 HTTP {status}")
+        failures.append(f"anon 读取失败 HTTP {status}: {body[:200]}")
+        print(f"FAIL  anon 读取失败 HTTP {status}")
 
     # 2) anonymous INSERT must fail
     status, _, body = request(
@@ -72,18 +61,18 @@ def main():
         else:
             print(f"PASS  {table} 可读，count={count}")
 
-    if expected is not None and counts.get("terms") != str(expected):
-        failures.append(f"terms 行数 {counts.get('terms')} != 期望 {expected}")
-        print(f"FAIL  terms 行数不匹配：{counts.get('terms')} vs {expected}")
+    if expected is not None and (not str(counts.get("terms", "")).isdigit() or int(counts["terms"]) < expected):
+        failures.append(f"terms 行数 {counts.get('terms')} < 期望 {expected}")
+        print(f"FAIL  terms 行数不足：{counts.get('terms')} vs {expected}")
     elif expected is not None:
-        print(f"PASS  terms 行数 = {expected}")
+        print(f"PASS  terms 行数 >= {expected}（当前 {counts.get('terms')}）")
 
     if failures:
         print("\n=== 有失败项 ===")
         for f in failures:
             print(" -", f)
         sys.exit(1)
-    print("\n全部通过：数据库已就绪，未登录无法读取词条。")
+    print("\n全部通过：数据库已就绪，访客可只读词库，匿名不可写入。")
 
 
 if __name__ == "__main__":

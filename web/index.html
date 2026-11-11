@@ -57,6 +57,7 @@
       <button class="btn primary auth-submit" type="submit">登 录</button>
     </form>
     <p class="auth-hint">请使用管理员分配的账号登录；管理员登录后可在「用户管理」中新增一般用户。</p>
+  <button class="link-btn auth-back" id="guestBackBtn" type="button" hidden>先浏览词典（访客模式）</button>
   </div>
 </div>
 
@@ -88,6 +89,7 @@
       <span class="user-name" id="userName">—</span>
       <span class="role-badge" id="userRole">一般</span>
     </div>
+    <button class="btn primary small" id="loginBtn" type="button" hidden>登录</button>
     <button class="icon-btn" id="changePassBtn" type="button" aria-label="修改密码" title="修改密码">
       <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <circle cx="8" cy="15" r="4"></circle><path d="M11 12l8-8M16 4h4v4"></path>
@@ -104,7 +106,7 @@
       <div class="rail-label">浏览</div>
       <nav class="nav" id="nav">
         <button class="nav-item is-active" type="button" data-view="all">所有词条 <span class="nav-count" id="navAllCount">9,058</span></button>
-        <button class="nav-item" type="button" data-view="fav">我的收藏 <span class="nav-count" id="navFavCount">0</span></button>
+        <button class="nav-item" type="button" data-view="fav" id="navFav">我的收藏 <span class="nav-count" id="navFavCount">0</span></button>
         <button class="nav-item" type="button" data-view="patterns">商务句型 <span class="nav-count" id="navPatternCount">32</span></button>
         <button class="nav-item" type="button" data-view="stats">数据统计</button>
       </nav>
@@ -137,7 +139,7 @@
       <div class="rail-label">浏览</div>
       <nav class="nav" id="navDrawer">
         <button class="nav-item is-active" type="button" data-view="all">所有词条</button>
-        <button class="nav-item" type="button" data-view="fav">我的收藏</button>
+        <button class="nav-item" type="button" data-view="fav" id="navFavDrawer">我的收藏</button>
         <button class="nav-item" type="button" data-view="patterns">商务句型</button>
         <button class="nav-item" type="button" data-view="stats">数据统计</button>
         <button class="nav-item" type="button" data-view="data" id="navDataDrawer">词库管理</button>

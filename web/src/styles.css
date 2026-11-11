@@ -1072,6 +1072,7 @@ html[data-theme="dark"] .mark img.logo-dark { display: block; }
   font-size: 12.5px;
 }
 .auth-submit { width: 100%; height: 42px; font-size: 14px; letter-spacing: .18em; }
+.auth-back { display: block; margin: 12px auto 0; font-size: 12.5px; }
 .auth-hint {
   margin: 20px 0 0; padding-top: 13px; border-top: 1px solid var(--line);
   font-size: 11.5px; line-height: 1.75; color: var(--muted);
