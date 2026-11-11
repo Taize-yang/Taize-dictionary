@@ -761,7 +761,8 @@
         (canDelete
           ? '<button class="btn" type="button" data-edit="' + e.id + '">编辑</button>' +
             '<button class="btn danger" type="button" data-delete="' + e.id + '">删除</button>'
-          : '<button class="btn" type="button" data-feedback="' + e.id + '">反馈</button>') +
+          : '<button class="btn" type="button" data-edit="' + e.id + '">编辑</button>' +
+            '<button class="btn" type="button" data-feedback="' + e.id + '">反馈</button>') +
       "</div>" +
       (grid ? '<dl class="detail-grid">' + grid + "</dl>" : "") +
       '<section class="detail-note"><h3 class="section-label">注释</h3>' +
@@ -935,7 +936,7 @@
         '<span class="pattern-no">NO. ' + pad2(p.id) + "</span>" +
         '<div class="pattern-ja">' + highlight(p.ja, tokens) + "</div>" +
         '<div class="pattern-zh">' + highlight(p.zh, tokens) + "</div>" +
-        (AUTH.isAdmin() ? '<button class="pattern-edit" type="button" data-edit-pattern="' + p.id + '" title="编辑句型">编辑</button>' : '') +
+        '<button class="pattern-edit" type="button" data-edit-pattern="' + p.id + '" title="编辑句型">编辑</button>' +
         '<button class="pattern-copy" type="button" data-copy-pattern="' + p.id + '" aria-label="复制句型" title="复制">⧉</button>' +
       "</article>";
     }).join("");
@@ -961,10 +962,6 @@
   }
 
   function openPatternForm(id) {
-    if (id && !AUTH.isAdmin()) {
-      toast("仅管理员可编辑句型");
-      return;
-    }
     var patterns = DATA.patternList ? DATA.patternList() : (META.patterns || []);
     var p = id ? patterns.filter(function (x) { return x.id === Number(id); })[0] : null;
     state.editingPatternId = p ? p.id : null;
@@ -1830,10 +1827,6 @@
   }
 
   function openEntryForm(id) {
-    if (id && !AUTH.isAdmin()) {
-      toast("仅管理员可编辑词条");
-      return;
-    }
     var e = id ? byId.get(Number(id)) : null;
     state.editingId = e ? e.id : null;
     el.entryModalTitle.textContent = e ? "编辑词条" : "新增词条";

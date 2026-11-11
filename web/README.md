@@ -55,7 +55,7 @@ npm run build        # 输出到 web/dist/
 | 登录 | Supabase Auth（用户名映射为 `username@dict.local`） |
 | 词库读取 | 登录后分页读取 `public.terms`（RLS 只允许 authenticated） |
 | 增删改 | 直接写 `public.terms`；删除为软删除 `deleted=true` |
-| 编辑 | 仅管理员可编辑词条 / 句型；一般用户只能新增 |
+| 编辑 | 登录用户可编辑词条 / 句型；删除仍仅管理员 |
 | 删除词条 | 仅管理员；普通用户详情页不显示删除按钮，数据库触发器也会拒绝 |
 | 反馈 | 一般用户在词条详情页提交；管理员在「反馈收集」页标记已读 / 删除 |
 | 词库管理页 | 仅管理员可见 |
@@ -79,6 +79,7 @@ npm run build        # 输出到 web/dist/
   ```
   然后在 `supabase/config.toml` 的 functions 配置中仍保持 `verify_jwt = false`（函数内部自己校验 JWT）。
 - 如需把用户名登录改成邮箱登录，只需调整 `web/src/main.js` 里的 email 映射和 UI 文案。
+
 
 
 
