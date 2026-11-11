@@ -25,7 +25,13 @@
   --radius-sm: 8px;
   --ui: "PingFang SC", "Microsoft YaHei UI", "Microsoft YaHei", "Hiragino Sans", "Yu Gothic UI", "Segoe UI", system-ui, sans-serif;
   --ja: "Yu Gothic", "Meiryo", "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Microsoft YaHei", sans-serif;
-  --serif: "Noto Serif SC", "Source Han Serif SC", "Songti SC", "STSong", "SimSun", "Yu Mincho", "Hiragino Mincho ProN", "MS PMincho", serif;
+  /* Chinese UI headings: keep Chinese serif fonts first and use PingFang as a
+     same-language fallback. Do NOT put Japanese Mincho fonts in this stack:
+     iPadOS selects Hiragino/Yu Mincho when Songti SC is absent, and missing
+     simplified glyphs then fall back to Heiti, producing mixed bold text. */
+  --serif: "Songti SC", "STSong", "Kaiti SC", "STKaiti", "Noto Serif SC", "Source Han Serif SC", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", serif;
+  /* Japanese text keeps a Japanese-first serif stack. */
+  --ja-serif: "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", "Source Han Serif JP", "Songti SC", "STSong", serif;
   --rail-w: 238px;
   --detail-w: 410px;
   --header-h: 68px;
@@ -467,7 +473,7 @@ html[data-theme="dark"] .mark img.logo-dark { display: block; }
 .row-main { min-width: 0; flex: 1 1 auto; display: flex; flex-direction: column; justify-content: center; gap: 2px; }
 .row-line { display: flex; align-items: baseline; gap: 10px; min-width: 0; }
 .term-ja {
-  font-family: var(--serif);
+  font-family: var(--ja-serif);
   font-size: 17.5px;
   font-weight: 600;
   letter-spacing: .01em;
@@ -643,7 +649,7 @@ html[data-theme="dark"] .mark img.logo-dark { display: block; }
 .eyebrow-chip.hot { color: var(--gold); border-color: color-mix(in srgb, var(--gold) 40%, transparent); background: color-mix(in srgb, var(--gold) 8%, transparent); }
 .detail-ja {
   margin: 0 0 4px;
-  font-family: var(--serif);
+  font-family: var(--ja-serif);
   font-size: 31px;
   font-weight: 700;
   line-height: 1.2;
@@ -1195,7 +1201,7 @@ html[data-theme="dark"] .mark img.logo-dark { display: block; }
 .feedback-card .feedback-term { margin: 0 0 6px; font-size: 12.5px; color: var(--muted); }
 .feedback-body { margin: 0 0 12px; white-space: pre-wrap; line-height: 1.7; font-size: 13.5px; color: var(--ink-2); }
 .feedback-actions { display: flex; gap: 8px; }
-.feedback-term { font-family: var(--serif); font-size: 14px; color: var(--ink); margin: 0; }
+.feedback-term { font-family: var(--ja-serif); font-size: 14px; color: var(--ink); margin: 0; }
 .custom-table, .user-table { width: 100%; max-width: 900px; border-collapse: collapse; font-size: 13px; }
 .custom-table th, .user-table th {
   text-align: left; padding: 8px 10px;
@@ -1206,7 +1212,7 @@ html[data-theme="dark"] .mark img.logo-dark { display: block; }
   padding: 9px 10px; vertical-align: top;
   border-bottom: 1px solid color-mix(in srgb, var(--line) 70%, transparent);
 }
-.custom-table td.ja { font-family: var(--serif); font-weight: 600; font-size: 14px; }
+.custom-table td.ja { font-family: var(--ja-serif); font-weight: 600; font-size: 14px; }
 .table-actions { display: flex; gap: 6px; justify-content: flex-end; }
 .table-empty { padding: 16px 10px; color: var(--muted); font-size: 13px; }
 .manage-note {
@@ -1242,6 +1248,7 @@ html[data-theme="dark"] .mark img.logo-dark { display: block; }
   .user-name, .role-badge { display: none; }
   .user-avatar { width: 32px; height: 32px; font-size: 13px; }
 }
+
 
 
 
